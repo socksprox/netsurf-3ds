@@ -22,6 +22,12 @@
 #include "plot.h"
 #include "surface.h"
 
+#ifdef __3DS__
+#define NSFB_CURSOR_INVISIBLE 1
+#else
+#define NSFB_CURSOR_INVISIBLE 0
+#endif
+
 bool nsfb_cursor_init(nsfb_t *nsfb)
 {
     if (nsfb->cursor != NULL)
@@ -52,8 +58,12 @@ bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel,
 
     nsfb->cursor->hotspot_x = hotspot_x;
     nsfb->cursor->hotspot_y = hotspot_y;
- 
+
+#if NSFB_CURSOR_INVISIBLE
+    return true;
+#else
     return nsfb->surface_rtns->cursor(nsfb, nsfb->cursor);
+#endif
 }
 
 bool nsfb_cursor_loc_set(nsfb_t *nsfb, const nsfb_bbox_t *loc)
@@ -65,7 +75,11 @@ bool nsfb_cursor_loc_set(nsfb_t *nsfb, const nsfb_bbox_t *loc)
     nsfb->cursor->loc.x1 = nsfb->cursor->loc.x0 + nsfb->cursor->bmp_width;
     nsfb->cursor->loc.y1 = nsfb->cursor->loc.y0 + nsfb->cursor->bmp_height;
 
+#if NSFB_CURSOR_INVISIBLE
+    return true;
+#else
     return nsfb->surface_rtns->cursor(nsfb, nsfb->cursor);
+#endif
 }
 
 bool nsfb_cursor_loc_get(nsfb_t *nsfb, nsfb_bbox_t *loc)
@@ -80,6 +94,10 @@ bool nsfb_cursor_loc_get(nsfb_t *nsfb, nsfb_bbox_t *loc)
 /* documented in cursor.h */
 bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
+#if NSFB_CURSOR_INVISIBLE
+    cursor->plotted = true;
+    return true;
+#else
     int sav_size;
     nsfb_bbox_t sclip; /* saved clipping area */
 
@@ -133,10 +151,14 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
     cursor->plotted = true;
 
     return true;
+#endif
 }
 
 bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
+#if NSFB_CURSOR_INVISIBLE
+    return true;
+#else
 	nsfb_bbox_t sclip; /* saved clipping area */
 
 	nsfb->plotter_fns->get_clip(nsfb, &sclip);
@@ -154,6 +176,7 @@ bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 
         cursor->plotted = false;
 	return true;
+#endif
 
 }
 
