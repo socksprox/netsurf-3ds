@@ -1232,9 +1232,17 @@ fb_redraw(fbtk_widget_t *widget,
 
 	/* Dirty box is in widget-local coords: clamp to the pane so page
 	 * content cannot be plotted into the toolbar or status bar. */
-	box.x0 = max(0, bwidget->redraw_box.x0);
+	if (widget == gw->browser_top) {
+		/* Both panes share one dirty box, which the lower pane clips
+		 * to its narrower width.  The top screen is wider and may show
+		 * page content beyond that column, so repaint it full width. */
+		box.x0 = 0;
+		box.x1 = pane_w;
+	} else {
+		box.x0 = max(0, bwidget->redraw_box.x0);
+		box.x1 = min(pane_w, bwidget->redraw_box.x1);
+	}
 	box.y0 = max(0, bwidget->redraw_box.y0);
-	box.x1 = min(pane_w, bwidget->redraw_box.x1);
 	box.y1 = min(pane_h, bwidget->redraw_box.y1);
 	box.x0 += x;
 	box.y0 += y;
