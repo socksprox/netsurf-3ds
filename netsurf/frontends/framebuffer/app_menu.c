@@ -682,6 +682,16 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	fb_menu_plot_pointer(nsfb, pointer_x, pointer_base_y,
 			FB_MENU_COLOUR_PANEL_BOTTOM);
 
+	{
+		nsfb_bbox_t content_clip;
+
+		content_clip.x0 = panel_x0 + FB_MENU_BORDER_WIDTH;
+		content_clip.y0 = panel_y0 + FB_3DS_POPUP_PANEL_PAD;
+		content_clip.x1 = panel_x1 - FB_MENU_BORDER_WIDTH;
+		content_clip.y1 = panel_y1 - FB_3DS_POPUP_PANEL_PAD;
+		nsfb_plot_set_clip(nsfb, &content_clip);
+	}
+
 	for (row = 0; row < FB_MENU_ITEM_COUNT; row++) {
 		const struct fb_menu_item *item = fb_menu_items + row;
 		int row_y = panel_y0 + FB_3DS_POPUP_PANEL_PAD +
@@ -727,6 +737,8 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 			nsfb_plot_rectangle_fill(nsfb, &divider, FB_MENU_COLOUR_DIVIDER);
 		}
 	}
+
+	nsfb_plot_set_clip(nsfb, NULL);
 
 	fb_menu_plot_pointer_border(nsfb, pointer_x, pointer_base_y,
 			FB_MENU_COLOUR_BORDER);
