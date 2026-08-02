@@ -25,12 +25,17 @@
 #include "utils/utsname.h"
 #include "desktop/version.h"
 #include "utils/log.h"
+#include "utils/nsoption.h"
 #include "utils/useragent.h"
 
 static const char *core_user_agent_string = NULL;
 
 #ifndef NETSURF_UA_FORMAT_STRING
 #define NETSURF_UA_FORMAT_STRING "Mozilla/5.0 (%s) NetSurf/%d.%d"
+#endif
+
+#ifndef NETSURF_UA_MOBILE_SYSNAME
+#define NETSURF_UA_MOBILE_SYSNAME "Linux; Android 10; Mobile"
 #endif
 
 /**
@@ -45,6 +50,11 @@ user_agent_build_string(void)
         char *ua_string;
         int len;
 
+#ifdef nsframebuffer
+        if (nsoption_bool(fb_mobile_site)) {
+                sysname = NETSURF_UA_MOBILE_SYSNAME;
+        } else
+#endif
         if (uname(&un) >= 0) {
                 sysname = un.sysname;
                 if (strcmp(sysname, "Linux") == 0) {
@@ -92,4 +102,12 @@ free_user_agent_string(void)
 		free((void *)core_user_agent_string);
 		core_user_agent_string = NULL;
 	}
+}
+
+/* Public API documented in useragent.h */
+void
+user_agent_rebuild(void)
+{
+	free_user_agent_string();
+	user_agent_build_string();
 }

@@ -58,6 +58,7 @@
 #include "framebuffer/fetch.h"
 #include "framebuffer/bitmap.h"
 #include "framebuffer/local_history.h"
+#include "framebuffer/app_menu.h"
 #include "3ds.h"
 
 
@@ -66,14 +67,16 @@
 #ifdef __3DS__
 #define FB_3DS_SCREEN_HEIGHT 240
 #define FB_3DS_PANE_BG FB_FRAME_COLOUR
+#define FB_3DS_EMPTY_TOP_LINE_A 0xFFE0E0E5
+#define FB_3DS_EMPTY_TOP_LINE_B 0xFFD5D5CF
 #define FB_3DS_TITLE_FONT_HEIGHT 14
 #define FB_3DS_TITLE_LABEL_HEIGHT 20
 #define FB_3DS_TITLE_BOTTOM_MARGIN 16
 #define FB_3DS_TITLE_COLOUR 0xFF666666
 #define px_to_pt(x) (((x) * 72) / FBTK_DPI)
 
-/** Action bar contents, bottom of the lower screen. No url entry here. */
-#define FB_3DS_ACTIONBAR_LAYOUT "blfsrtc"
+/** Action bar contents, bottom of the lower screen. No url entry or reload here. */
+#define FB_3DS_ACTIONBAR_LAYOUT "mblfstc"
 #define FB_3DS_ACTION_MAX 8
 
 /** Url bar, top of the lower screen. */
@@ -127,9 +130,121 @@ fb_get_bwidget(struct gui_window *gw)
 }
 
 static int
+fb_3ds_toolbar_height(struct gui_window *gw)
+{
+	int bar_h;
+
+	if (gw->toolbar == NULL) {
+		return 0;
+	}
+
+	bar_h = nsoption_int(fb_toolbar_size);
+	if (bar_h <= 0) {
+		bar_h = fbtk_get_height(gw->toolbar);
+	}
+	if (bar_h <= 0) {
+		bar_h = 30;
+	}
+
+	return bar_h;
+}
+
+static int
+fb_3ds_chrome_top_y(struct gui_window *gw)
+{
+	return fbtk_get_height(gw->window) - nsoption_int(fb_furniture_size) -
+			fb_3ds_toolbar_height(gw);
+}
+
+static int
+fb_3ds_bottom_x(int win_w)
+{
+	return max(0, (win_w - FB_3DS_BOTTOM_SCREEN_WIDTH) / 2);
+}
+
+static void
+fb_3ds_lower_browser_panes(struct gui_window *gw)
+{
+	if (gw->browser_top_bg != NULL) {
+		fbtk_set_zorder(gw->browser_top_bg, INT_MAX);
+	}
+	if (gw->browser_top != NULL) {
+		fbtk_set_zorder(gw->browser_top, INT_MAX);
+	}
+	if (gw->browser != NULL) {
+		fbtk_set_zorder(gw->browser, INT_MAX);
+	}
+}
+
+static void
+fb_3ds_raise_bottom_chrome(struct gui_window *gw)
+{
+	fb_3ds_lower_browser_panes(gw);
+
+	if (gw->toolbar != NULL) {
+		fbtk_set_zorder(gw->toolbar, INT_MIN);
+	}
+	if (gw->urlbar != NULL) {
+		fbtk_set_zorder(gw->urlbar, INT_MIN);
+	}
+	if (gw->status != NULL) {
+		fbtk_set_zorder(gw->status, INT_MIN);
+	}
+	if (gw->top_title_label != NULL) {
+		fbtk_set_zorder(gw->top_title_label, INT_MIN);
+	}
+}
+
+/** Bottom-screen page viewport derived from urlbar state, not widget size. */
+static void
+fb_3ds_browser_geometry(struct gui_window *gw, int *x, int *y, int *w, int *h)
+{
+	int win_w = fbtk_get_width(gw->window);
+	int url_h = gw->urlbar_shown ? FB_3DS_URLBAR_HEIGHT : 0;
+	int page_y = FB_3DS_SCREEN_HEIGHT + url_h;
+	int chrome_top = fb_3ds_chrome_top_y(gw);
+
+	*x = fb_3ds_bottom_x(win_w);
+	*y = page_y;
+	*w = FB_3DS_BOTTOM_SCREEN_WIDTH;
+	*h = max(1, chrome_top - page_y);
+}
+
+static void
+fb_3ds_apply_browser_geometry(struct gui_window *gw)
+{
+	int x, y, w, h;
+
+	if (gw->browser == NULL) {
+		return;
+	}
+
+	fb_3ds_browser_geometry(gw, &x, &y, &w, &h);
+	fbtk_set_pos_and_size(gw->browser, x, y, w, h);
+}
+
+static void
+fb_3ds_repaint_toolbar_sync(struct gui_window *gw)
+{
+	if (gw->toolbar == NULL) {
+		return;
+	}
+
+	fb_3ds_raise_bottom_chrome(gw);
+	fbtk_post_callback(gw->toolbar, FBTK_CBT_REDRAW);
+}
+
+static int
 fb_browser_scroll_viewport_height(struct gui_window *gw)
 {
+#ifdef __3DS__
+	int x, y, w, h;
+
+	fb_3ds_browser_geometry(gw, &x, &y, &w, &h);
+	return h;
+#else
 	return fbtk_get_height(gw->browser);
+#endif
 }
 
 static int
@@ -152,10 +267,79 @@ fb_browser_pane_doc_y(fbtk_widget_t *widget, struct gui_window *gw,
 	return widget_y + scrolly;
 }
 
+/** Horizontal inset that centres the 320px viewport within a wider pane. */
+static int
+fb_3ds_pane_content_inset(fbtk_widget_t *widget)
+{
+	int pane_w = fbtk_get_width(widget);
+
+	return max(0, (pane_w - FB_3DS_BOTTOM_SCREEN_WIDTH) / 2);
+}
+
+/** Framebuffer X where document (0,0) is drawn for a pane. */
+static int
+fb_3ds_pane_content_x(fbtk_widget_t *widget, int scrollx)
+{
+	return fbtk_get_absx(widget) + fb_3ds_pane_content_inset(widget) - scrollx;
+}
+
+static int
+fb_3ds_widget_to_doc_x(fbtk_widget_t *widget, int widget_x, int scrollx)
+{
+	return widget_x + scrollx - fb_3ds_pane_content_inset(widget);
+}
+
+static void
+fb_3ds_request_bottom_chrome_redraw(struct gui_window *gw)
+{
+	if (gw->toolbar != NULL) {
+		fbtk_request_redraw(gw->toolbar);
+	}
+	if (gw->status != NULL) {
+		fbtk_request_redraw(gw->status);
+	}
+	if (gw->urlbar != NULL && gw->urlbar_shown) {
+		fbtk_request_redraw(gw->urlbar);
+	}
+}
+
+/** Whether the top pane needs repainting for the current scroll state. */
+static bool
+fb_3ds_need_top_redraw(struct gui_window *gw,
+		struct browser_widget_s *bwidget)
+{
+	int top_h;
+
+	if (bwidget->scrolly > 0) {
+		return true;
+	}
+
+	if (!bwidget->redraw_required) {
+		return false;
+	}
+
+	/* Full top-pane clear queued after content leaves the top screen. */
+	top_h = fbtk_get_height(gw->browser_top);
+	return bwidget->redraw_box.x0 == 0 &&
+			bwidget->redraw_box.y0 == 0 &&
+			bwidget->redraw_box.x1 >= fbtk_get_width(gw->browser_top) &&
+			bwidget->redraw_box.y1 >= top_h;
+}
+
+static void
+fb_3ds_queue_top_pane_clear(struct gui_window *gw,
+		struct browser_widget_s *bwidget)
+{
+	bwidget->redraw_box.x0 = 0;
+	bwidget->redraw_box.y0 = 0;
+	bwidget->redraw_box.x1 = fbtk_get_width(gw->browser_top);
+	bwidget->redraw_box.y1 = fbtk_get_height(gw->browser_top);
+	bwidget->redraw_required = true;
+}
+
 static void
 fb_browser_request_redraw(struct gui_window *gw)
 {
-	fbtk_request_redraw(gw->browser_top);
 	fbtk_request_redraw(gw->browser);
 }
 
@@ -170,6 +354,73 @@ fb_3ds_fill_pane(nsfb_t *nsfb, int x, int y, int w, int h)
 	pane.y1 = y + h;
 	nsfb_plot_rectangle_fill(nsfb, &pane, FB_3DS_PANE_BG);
 }
+
+/**
+ * Fill the top screen background with horizontal lines: three #e0e0e5 lines,
+ * then one #d5d5cf line, repeating.
+ */
+static void
+fb_3ds_fill_top_pane_bg(nsfb_t *nsfb, int x, int y, int w, int h)
+{
+	int row;
+	nsfb_bbox_t band;
+
+	for (row = 0; row < h; ) {
+		int phase = row % 4;
+		colour c;
+		int count;
+
+		if (phase == 3) {
+			c = FB_3DS_EMPTY_TOP_LINE_B;
+			count = 1;
+		} else {
+			c = FB_3DS_EMPTY_TOP_LINE_A;
+			count = min(3 - phase, h - row);
+		}
+
+		band.x0 = x;
+		band.y0 = y + row;
+		band.x1 = x + w;
+		band.y1 = y + row + count;
+		nsfb_plot_rectangle_fill(nsfb, &band, c);
+		row += count;
+	}
+}
+
+/** Screen Y where page content begins on the top pane, or past the pane end. */
+static int
+fb_3ds_top_pane_content_y0(int pane_y, int scrolly)
+{
+	if (scrolly <= 0) {
+		return pane_y + FB_3DS_SCREEN_HEIGHT;
+	}
+	if (scrolly >= FB_3DS_SCREEN_HEIGHT) {
+		return pane_y;
+	}
+	return pane_y + FB_3DS_SCREEN_HEIGHT - scrolly;
+}
+
+static int
+fb_3ds_top_bg_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
+{
+	nsfb_t *nsfb = fbtk_get_nsfb(widget);
+	nsfb_bbox_t bbox;
+
+	(void)cbi;
+
+	fbtk_get_bbox(widget, &bbox);
+	nsfb_claim(nsfb, &bbox);
+	fb_3ds_fill_top_pane_bg(nsfb, bbox.x0, bbox.y0,
+			bbox.x1 - bbox.x0, bbox.y1 - bbox.y0);
+	nsfb_update(nsfb, &bbox);
+
+	return 0;
+}
+
+static void fb_redraw(fbtk_widget_t *widget,
+		struct gui_window *gw,
+		struct browser_widget_s *bwidget,
+		struct browser_window *bw);
 
 static void
 fb_3ds_update_top_title_visibility(struct gui_window *gw, int scrolly)
@@ -218,7 +469,7 @@ fb_3ds_position_top_title(struct gui_window *gw, const char *title)
 	font_style.size = px_to_pt(FB_3DS_TITLE_FONT_HEIGHT * PLOT_STYLE_SCALE);
 	font_style.weight = 400;
 	font_style.flags = FONTF_NONE;
-	font_style.background = FB_3DS_PANE_BG;
+	font_style.background = 0;
 	font_style.foreground = FB_3DS_TITLE_COLOUR;
 
 	if (title == NULL || title[0] == '\0' ||
@@ -407,7 +658,7 @@ fb_3ds_poll_page_zoom(void)
 	uint64_t now;
 
 	if (gw == NULL || gw->browser == NULL || gw->bw == NULL ||
-			fb_local_history_is_shown()) {
+			fb_local_history_is_shown() || fb_app_menu_is_shown()) {
 		return;
 	}
 
@@ -510,6 +761,9 @@ fb_gui_repaint_browser(struct gui_window *gw)
 			fbtk_get_width(gw->browser),
 			fbtk_get_height(gw->browser));
 #ifdef __3DS__
+	if (gw->browser_top_bg != NULL) {
+		fbtk_request_redraw(gw->browser_top_bg);
+	}
 	if (gw->browser_top != NULL) {
 		fb_queue_redraw(gw->browser_top, 0, 0,
 				fbtk_get_width(gw->browser_top),
@@ -647,6 +901,7 @@ widget_set_scroll(struct gui_window *gw, int sx, int sy)
 	struct browser_widget_s *bwidget = fb_get_bwidget(gw);
 	int content_width, content_height;
 	int width, height;
+	int old_scrolly = bwidget->scrolly;
 
 	browser_window_get_extents(gw->bw, true,
 			&content_width, &content_height);
@@ -677,6 +932,14 @@ widget_set_scroll(struct gui_window *gw, int sx, int sy)
 	bwidget->pan_required = false;
 	fb_3ds_update_top_title_visibility(gw, sy);
 	fb_3ds_update_urlbar_visibility(gw, sy);
+	fb_3ds_apply_browser_geometry(gw);
+
+	/* Page content left the top screen: queue a full-pane clear. */
+	if (old_scrolly > 0 && sy == 0) {
+		fb_3ds_queue_top_pane_clear(gw, bwidget);
+		fb_3ds_repaint_toolbar_sync(gw);
+	}
+
 	fb_browser_request_redraw(gw);
 }
 #endif
@@ -823,8 +1086,32 @@ fb_redraw(fbtk_widget_t *widget,
 	nsfb_bbox_t box;
 #ifdef __3DS__
 	int origin_y;
+	int pane_w;
+	int pane_h;
 #endif
 
+#ifdef __3DS__
+	if (widget == gw->browser) {
+		fb_3ds_apply_browser_geometry(gw);
+		fb_3ds_browser_geometry(gw, &x, &y, &pane_w, &pane_h);
+	} else {
+		x = fbtk_get_absx(widget);
+		y = fbtk_get_absy(widget);
+		pane_w = fbtk_get_width(widget);
+		pane_h = fbtk_get_height(widget);
+	}
+
+	/* Dirty box is in widget-local coords: clamp to the pane so page
+	 * content cannot be plotted into the toolbar or status bar. */
+	box.x0 = max(0, bwidget->redraw_box.x0);
+	box.y0 = max(0, bwidget->redraw_box.y0);
+	box.x1 = min(pane_w, bwidget->redraw_box.x1);
+	box.y1 = min(pane_h, bwidget->redraw_box.y1);
+	box.x0 += x;
+	box.y0 += y;
+	box.x1 += x;
+	box.y1 += y;
+#else
 	x = fbtk_get_absx(widget);
 	y = fbtk_get_absy(widget);
 
@@ -835,6 +1122,7 @@ fb_redraw(fbtk_widget_t *widget,
 	box.y1 += y;
 	box.x0 += x;
 	box.x1 += x;
+#endif
 
 	clip.x0 = box.x0;
 	clip.y0 = box.y0;
@@ -843,44 +1131,113 @@ fb_redraw(fbtk_widget_t *widget,
 
 #ifdef __3DS__
 	{
-		int pane_w = fbtk_get_width(widget);
-		int pane_h = fbtk_get_height(widget);
+		nsfb_bbox_t pane_box;
+		bool draw_content;
 
-		box.x0 = min(box.x0, x);
-		box.y0 = min(box.y0, y);
-		box.x1 = max(box.x1, x + pane_w);
-		box.y1 = max(box.y1, y + pane_h);
+		pane_box.x0 = x;
+		pane_box.y0 = y;
+		pane_box.x1 = x + pane_w;
+		pane_box.y1 = y + pane_h;
+
+		/* browser_top is redrawn from the lower pane's callback, so the
+		 * toolkit clip is still the bottom viewport.  Reset per pane. */
+		nsfb_plot_set_clip(nsfb, &pane_box);
+		nsfb_claim(nsfb, &pane_box);
+
+		if (widget == gw->browser_top) {
+			fb_3ds_fill_top_pane_bg(nsfb, x, y, pane_w, pane_h);
+		} else if (widget == gw->browser) {
+			int win_w = fbtk_get_width(gw->window);
+
+			fb_3ds_fill_pane(nsfb, x, y, pane_w, pane_h);
+			if (x > 0) {
+				fb_3ds_fill_top_pane_bg(nsfb, 0, y, x, pane_h);
+			}
+			if (x + pane_w < win_w) {
+				fb_3ds_fill_top_pane_bg(nsfb, x + pane_w, y,
+						win_w - x - pane_w, pane_h);
+			}
+		}
+
+		draw_content = widget != gw->browser_top ||
+				bwidget->scrolly > 0;
+
+		if (draw_content) {
+			struct rect content_clip;
+			int content_w = 0;
+			int content_h = 0;
+
+			browser_window_get_extents(bw, true, &content_w, &content_h);
+
+			if (widget == gw->browser_top) {
+				int content_y0 = fb_3ds_top_pane_content_y0(y,
+						bwidget->scrolly);
+				int doc_x = fb_3ds_pane_content_x(widget,
+						bwidget->scrollx);
+
+				content_clip.x0 = max(clip.x0, doc_x);
+				content_clip.y0 = max(clip.y0, content_y0);
+				content_clip.x1 = min(clip.x1,
+						doc_x + content_w);
+				content_clip.y1 = min(clip.y1, y + pane_h);
+
+				if (content_clip.x1 <= content_clip.x0 ||
+						content_clip.y1 <= content_clip.y0) {
+					draw_content = false;
+				} else {
+					clip = content_clip;
+				}
+			}
+
+			if (draw_content) {
+				int doc_x = fb_3ds_pane_content_x(widget,
+						bwidget->scrollx);
+
+				origin_y = fb_browser_pane_origin_y(widget, gw,
+						bwidget, y);
+				browser_window_redraw(bw,
+						doc_x,
+						origin_y,
+						&clip, &ctx);
+			}
+		}
+
+		if (fbtk_get_caret(widget, &caret_x, &caret_y, &caret_h)) {
+			nsfb_bbox_t line;
+			nsfb_plot_pen_t pen;
+			int doc_x = fb_3ds_pane_content_x(widget,
+					bwidget->scrollx);
+
+			line.x0 = doc_x + caret_x;
+			line.y0 = fb_browser_pane_origin_y(widget, gw, bwidget, y) +
+					caret_y;
+			line.x1 = doc_x + caret_x;
+			line.y1 = fb_browser_pane_origin_y(widget, gw, bwidget, y) +
+					caret_y + caret_h;
+
+			pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
+			pen.stroke_width = 1;
+			pen.stroke_colour = 0xFF0000FF;
+
+			nsfb_plot_line(nsfb, &line, &pen);
+		}
+
+		nsfb_update(nsfb, &pane_box);
+
+		if (widget == gw->browser) {
+			bwidget->redraw_box.y0 = bwidget->redraw_box.x0 = INT_MAX;
+			bwidget->redraw_box.y1 = bwidget->redraw_box.x1 = INT_MIN;
+			bwidget->redraw_required = false;
+		}
+		return;
 	}
-#endif
-
+#else
 	nsfb_claim(nsfb, &box);
 
-#ifdef __3DS__
-	{
-		int pane_w = fbtk_get_width(widget);
-		int pane_h = fbtk_get_height(widget);
-
-		fb_3ds_fill_pane(nsfb, x, y, pane_w, pane_h);
-
-		if (widget == gw->browser_top && bwidget->scrolly == 0) {
-			nsfb_update(nsfb, &box);
-			return;
-		}
-	}
-#endif
-
-#ifdef __3DS__
-	origin_y = fb_browser_pane_origin_y(widget, gw, bwidget, y);
-	browser_window_redraw(bw,
-			x - bwidget->scrollx,
-			origin_y,
-			&clip, &ctx);
-#else
 	browser_window_redraw(bw,
 			x - bwidget->scrollx,
 			y - bwidget->scrolly,
 			&clip, &ctx);
-#endif
 
 	if (fbtk_get_caret(widget, &caret_x, &caret_y, &caret_h)) {
 		/* This widget has caret, so render it */
@@ -888,16 +1245,9 @@ fb_redraw(fbtk_widget_t *widget,
 		nsfb_plot_pen_t pen;
 
 		line.x0 = x - bwidget->scrollx + caret_x;
-#ifdef __3DS__
-		line.y0 = fb_browser_pane_origin_y(widget, gw, bwidget, y) + caret_y;
-		line.x1 = x - bwidget->scrollx + caret_x;
-		line.y1 = fb_browser_pane_origin_y(widget, gw, bwidget, y) +
-			caret_y + caret_h;
-#else
 		line.y0 = y - bwidget->scrolly + caret_y;
 		line.x1 = x - bwidget->scrollx + caret_x;
 		line.y1 = y - bwidget->scrolly + caret_y + caret_h;
-#endif
 
 		pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
 		pen.stroke_width = 1;
@@ -908,14 +1258,9 @@ fb_redraw(fbtk_widget_t *widget,
 
 	nsfb_update(fbtk_get_nsfb(widget), &box);
 
-#ifdef __3DS__
-	if (widget == gw->browser) {
-#endif
 	bwidget->redraw_box.y0 = bwidget->redraw_box.x0 = INT_MAX;
 	bwidget->redraw_box.y1 = bwidget->redraw_box.x1 = INT_MIN;
 	bwidget->redraw_required = false;
-#ifdef __3DS__
-	}
 #endif
 }
 
@@ -941,6 +1286,8 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 
 	if (bwidget->pan_required) {
 #ifdef __3DS__
+		int old_scrolly = bwidget->scrolly;
+
 		bwidget->scrolly += bwidget->pany;
 		bwidget->scrollx += bwidget->panx;
 		bwidget->panx = 0;
@@ -948,6 +1295,9 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		bwidget->pan_required = false;
 		fb_3ds_update_top_title_visibility(gw, bwidget->scrolly);
 		fb_3ds_update_urlbar_visibility(gw, bwidget->scrolly);
+		if (old_scrolly > 0 && bwidget->scrolly == 0) {
+			fb_3ds_queue_top_pane_clear(gw, bwidget);
+		}
 #else
 		fb_pan(widget, bwidget, gw->bw);
 #endif
@@ -955,24 +1305,59 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 
 	if (bwidget->redraw_required) {
 #ifdef __3DS__
-		fb_redraw(gw->browser_top, gw, bwidget, gw->bw);
+		if (fb_3ds_need_top_redraw(gw, bwidget)) {
+			fb_redraw(gw->browser_top, gw, bwidget, gw->bw);
+		}
 #endif
 		fb_redraw(widget, gw, bwidget, gw->bw);
+#ifdef __3DS__
+		if (widget == gw->browser) {
+			fb_3ds_repaint_toolbar_sync(gw);
+		}
+#endif
 	} else {
 		bwidget->redraw_box.x0 = 0;
 		bwidget->redraw_box.y0 = 0;
-		bwidget->redraw_box.x1 = fbtk_get_width(widget);
-		bwidget->redraw_box.y1 = fbtk_get_height(widget);
 #ifdef __3DS__
-		bwidget->redraw_box.x1 = fbtk_get_width(gw->browser_top);
-		bwidget->redraw_box.y1 = fbtk_get_height(gw->browser_top);
-		fb_redraw(gw->browser_top, gw, bwidget, gw->bw);
-		bwidget->redraw_box.x0 = 0;
-		bwidget->redraw_box.y0 = 0;
+		{
+			int gx, gy, gw_w, gh;
+
+			if (widget == gw->browser) {
+				fb_3ds_apply_browser_geometry(gw);
+				fb_3ds_browser_geometry(gw, &gx, &gy, &gw_w, &gh);
+				bwidget->redraw_box.x1 = gw_w;
+				bwidget->redraw_box.y1 = gh;
+			} else {
+				bwidget->redraw_box.x1 = fbtk_get_width(widget);
+				bwidget->redraw_box.y1 = fbtk_get_height(widget);
+			}
+			if (fb_3ds_need_top_redraw(gw, bwidget)) {
+				bwidget->redraw_box.x1 = fbtk_get_width(gw->browser_top);
+				bwidget->redraw_box.y1 = fbtk_get_height(gw->browser_top);
+				fb_redraw(gw->browser_top, gw, bwidget, gw->bw);
+				bwidget->redraw_box.x0 = 0;
+				bwidget->redraw_box.y0 = 0;
+				if (widget == gw->browser) {
+					fb_3ds_browser_geometry(gw, &gx, &gy,
+							&gw_w, &gh);
+					bwidget->redraw_box.x1 = gw_w;
+					bwidget->redraw_box.y1 = gh;
+				} else {
+					bwidget->redraw_box.x1 = fbtk_get_width(widget);
+					bwidget->redraw_box.y1 = fbtk_get_height(widget);
+				}
+			}
+		}
+#else
 		bwidget->redraw_box.x1 = fbtk_get_width(widget);
 		bwidget->redraw_box.y1 = fbtk_get_height(widget);
 #endif
 		fb_redraw(widget, gw, bwidget, gw->bw);
+#ifdef __3DS__
+		if (widget == gw->browser) {
+			fb_3ds_repaint_toolbar_sync(gw);
+		}
+#endif
 	}
 	return 0;
 }
@@ -1033,8 +1418,17 @@ process_cmdline(int argc, char** argv)
 
 	fewidth = nsoption_int(window_width);
 	if (fewidth <= 0) {
+#ifdef __3DS__
+		fewidth = FB_3DS_FRAMEBUFFER_WIDTH;
+#else
 		fewidth = 320;
+#endif
 	}
+#ifdef __3DS__
+	if (fewidth < FB_3DS_FRAMEBUFFER_WIDTH) {
+		fewidth = FB_3DS_FRAMEBUFFER_WIDTH;
+	}
+#endif
 	feheight = nsoption_int(window_height);
 	if (feheight <= 0) {
 #ifdef __3DS__
@@ -1210,7 +1604,7 @@ fb_browser_window_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	struct gui_window *gw = cbi->context;
 	struct browser_widget_s *bwidget = fbtk_get_userpw(widget);
 	browser_mouse_state mouse;
-	int x = cbi->x + bwidget->scrollx;
+	int x = fb_3ds_widget_to_doc_x(widget, cbi->x, bwidget->scrollx);
 	int y = fb_browser_pane_doc_y(widget, gw, cbi->y, bwidget->scrolly);
 	uint64_t time_now;
 	static struct {
@@ -1223,18 +1617,20 @@ fb_browser_window_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		return 0;
 
 #ifdef __3DS__
-	if (fb_local_history_is_shown()) {
-		if (cbi->event->type == NSFB_EVENT_KEY_UP &&
-		    fb_history_dismiss_touch) {
-			fb_history_dismiss_touch = false;
-			return 1;
-		}
-		if (widget == gw->browser_top &&
-		    cbi->event->type == NSFB_EVENT_KEY_DOWN &&
-		    cbi->event->value.keycode == NSFB_KEY_MOUSE_1) {
-			fb_history_dismiss_touch = true;
-			fb_local_history_hide();
-			return 1;
+	if (fb_local_history_is_shown() || fb_app_menu_is_shown()) {
+		if (fb_local_history_is_shown()) {
+			if (cbi->event->type == NSFB_EVENT_KEY_UP &&
+			    fb_history_dismiss_touch) {
+				fb_history_dismiss_touch = false;
+				return 1;
+			}
+			if (widget == gw->browser_top &&
+			    cbi->event->type == NSFB_EVENT_KEY_DOWN &&
+			    cbi->event->value.keycode == NSFB_KEY_MOUSE_1) {
+				fb_history_dismiss_touch = true;
+				fb_local_history_hide();
+				return 1;
+			}
 		}
 		return 0;
 	}
@@ -1412,11 +1808,11 @@ fb_browser_window_move(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	browser_mouse_state mouse = 0;
 	struct gui_window *gw = cbi->context;
 	struct browser_widget_s *bwidget = fbtk_get_userpw(widget);
-	int x = cbi->x + bwidget->scrollx;
+	int x = fb_3ds_widget_to_doc_x(widget, cbi->x, bwidget->scrollx);
 	int y = fb_browser_pane_doc_y(widget, gw, cbi->y, bwidget->scrolly);
 
 #ifdef __3DS__
-	if (fb_local_history_is_shown()) {
+	if (fb_local_history_is_shown() || fb_app_menu_is_shown()) {
 		return 0;
 	}
 #endif
@@ -1840,10 +2236,29 @@ fb_localhistory_btn_clik(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	if (cbi->event->type != NSFB_EVENT_KEY_UP)
 		return 0;
 
+#ifdef __3DS__
+	fb_app_menu_hide();
+#endif
 	fb_local_history_present(gw, gw->bw);
 
 	return 0;
 }
+
+#ifdef __3DS__
+static int
+fb_menu_btn_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
+{
+	struct gui_window *gw = cbi->context;
+
+	if (cbi->event->type != NSFB_EVENT_KEY_UP)
+		return 0;
+
+	fb_local_history_hide();
+	fb_app_menu_present(gw);
+
+	return 0;
+}
+#endif
 
 
 #ifndef __3DS__
@@ -2251,7 +2666,7 @@ struct fb_3ds_action_item {
  * Expand an action bar layout string into the items it names.
  *
  * Uses the same letters as the desktop toolbar layout except that the url
- * entry ('u') is not part of the action bar and is skipped.
+ * entry ('u') and reload ('r') are not part of the action bar and are skipped.
  *
  * \param gw The window the actions belong to.
  * \param layout Layout string or NULL for the default.
@@ -2275,11 +2690,22 @@ fb_3ds_collect_actions(struct gui_window *gw, const char *layout,
 		item->pw = NULL;
 
 		switch (*layout) {
+		case 'u': /* url bar - lives above the page, not here */
+		case 'r': /* reload - lives beside the url bar, not here */
+			continue;
+
 		case 'b': /* back */
 			item->image = &left_arrow;
 			item->click = fb_leftarrow_click;
 			item->pw = gw;
 			item->slot = &gw->back;
+			break;
+
+		case 'm': /* application menu */
+			item->image = &hamburger_image;
+			item->click = fb_menu_btn_click;
+			item->pw = gw;
+			item->slot = &gw->menu;
 			break;
 
 		case 'l': /* local history */
@@ -2301,13 +2727,6 @@ fb_3ds_collect_actions(struct gui_window *gw, const char *layout,
 			item->click = fb_stop_click;
 			item->pw = gw->bw;
 			item->slot = &gw->stop;
-			break;
-
-		case 'r': /* reload */
-			item->image = &reload;
-			item->click = fb_reload_click;
-			item->pw = gw->bw;
-			item->slot = &gw->reload;
 			break;
 
 		case 't': /* throbber/activity indicator */
@@ -2416,14 +2835,21 @@ create_3ds_action_bar(struct gui_window *gw, int bar_height,
 /**
  * Create the url bar which sits above the page on the lower screen.
  *
- * The bar starts out hidden; it is revealed by a downwards swipe on an
- * unscrolled page.
+ * The url field and reload button share one strip; both start hidden and are
+ * revealed together by a downwards swipe on an unscrolled page.
  */
 static void
 create_3ds_urlbar(struct gui_window *gw)
 {
-	gw->urlbar = fbtk_create_window(gw->window, 0, FB_3DS_SCREEN_HEIGHT,
-					0, FB_3DS_URLBAR_HEIGHT,
+	int pad = FB_3DS_URLBAR_PADDING;
+	int reload_y = max(0, (FB_3DS_URLBAR_HEIGHT - reload.height) / 2);
+	int bottom_x = fb_3ds_bottom_x(fbtk_get_width(gw->window));
+
+	gw->urlbar = fbtk_create_window(gw->window,
+					bottom_x,
+					FB_3DS_SCREEN_HEIGHT,
+					FB_3DS_BOTTOM_SCREEN_WIDTH,
+					FB_3DS_URLBAR_HEIGHT,
 					FB_FRAME_COLOUR);
 	if (gw->urlbar == NULL) {
 		return;
@@ -2433,10 +2859,10 @@ create_3ds_urlbar(struct gui_window *gw)
 			 set_ptr_default_move, NULL);
 
 	gw->url = fbtk_create_writable_text(gw->urlbar,
-					    FB_3DS_URLBAR_PADDING,
-					    FB_3DS_URLBAR_PADDING,
-					    -FB_3DS_URLBAR_PADDING,
-					    -FB_3DS_URLBAR_PADDING,
+					    pad,
+					    pad,
+					    -pad,
+					    -pad,
 					    FB_COLOUR_WHITE,
 					    FB_COLOUR_BLACK,
 					    true,
@@ -2444,6 +2870,16 @@ create_3ds_urlbar(struct gui_window *gw)
 					    gw);
 
 	fbtk_set_handler(gw->url, FBTK_CBT_POINTERENTER, fb_url_move, gw->bw);
+
+	gw->reload = fbtk_create_button(gw->urlbar,
+					0,
+					reload_y,
+					reload.width,
+					reload.height,
+					FB_FRAME_COLOUR,
+					&reload,
+					fb_reload_click,
+					gw->bw);
 
 	gw->urlbar_shown = false;
 	fbtk_set_mapping(gw->urlbar, false);
@@ -2462,38 +2898,71 @@ fb_3ds_layout_screens(struct gui_window *gw)
 	int furniture_width = nsoption_int(fb_furniture_size);
 	int win_w = fbtk_get_width(gw->window);
 	int win_h = fbtk_get_height(gw->window);
-	int bar_h = (gw->toolbar != NULL) ? fbtk_get_height(gw->toolbar) : 0;
+	int bottom_x = fb_3ds_bottom_x(win_w);
+	int bar_h = fb_3ds_toolbar_height(gw);
 	int url_h = gw->urlbar_shown ? FB_3DS_URLBAR_HEIGHT : 0;
 	int page_y = FB_3DS_SCREEN_HEIGHT + url_h;
-	int page_h = max(1, win_h - furniture_width - bar_h - page_y);
+	int chrome_top = fb_3ds_chrome_top_y(gw);
+	int page_h = max(1, chrome_top - page_y);
 
 	fbtk_set_pos_and_size(gw->browser_top, 0, 0,
 			      win_w, FB_3DS_SCREEN_HEIGHT);
 
-	if (gw->urlbar != NULL) {
-		fbtk_set_pos_and_size(gw->urlbar, 0, FB_3DS_SCREEN_HEIGHT,
-				      win_w, FB_3DS_URLBAR_HEIGHT);
-		fbtk_set_pos_and_size(gw->url,
-				      FB_3DS_URLBAR_PADDING,
-				      FB_3DS_URLBAR_PADDING,
-				      -FB_3DS_URLBAR_PADDING,
-				      -FB_3DS_URLBAR_PADDING);
+	if (gw->browser_top_bg != NULL) {
+		fbtk_set_pos_and_size(gw->browser_top_bg, 0, 0,
+				      win_w, FB_3DS_SCREEN_HEIGHT);
 	}
 
-	fbtk_set_pos_and_size(gw->browser, 0, page_y, win_w, page_h);
+	if (gw->urlbar != NULL) {
+		if (gw->urlbar_shown) {
+			int pad = FB_3DS_URLBAR_PADDING;
+			int reload_w = reload.width;
+			int reload_h = reload.height;
+			int reload_y = max(0, (FB_3DS_URLBAR_HEIGHT - reload_h) / 2);
+			int url_w = max(1, FB_3DS_BOTTOM_SCREEN_WIDTH - reload_w - pad * 3);
+
+			fbtk_set_pos_and_size(gw->urlbar,
+					      bottom_x,
+					      FB_3DS_SCREEN_HEIGHT,
+					      FB_3DS_BOTTOM_SCREEN_WIDTH,
+					      FB_3DS_URLBAR_HEIGHT);
+			fbtk_set_pos_and_size(gw->url, pad, pad, url_w, -pad);
+			fbtk_set_pos_and_size(gw->reload,
+					      FB_3DS_BOTTOM_SCREEN_WIDTH - reload_w - pad,
+					      reload_y,
+					      reload_w, reload_h);
+		} else {
+			fbtk_set_pos_and_size(gw->urlbar, bottom_x,
+					      FB_3DS_SCREEN_HEIGHT, 0, 0);
+		}
+	}
+
+	fbtk_set_pos_and_size(gw->browser,
+			      bottom_x,
+			      page_y,
+			      FB_3DS_BOTTOM_SCREEN_WIDTH,
+			      page_h);
 
 	if (gw->toolbar != NULL) {
-		fbtk_set_pos_and_size(gw->toolbar, 0,
-				      win_h - furniture_width - bar_h,
-				      win_w, bar_h);
+		fbtk_set_pos_and_size(gw->toolbar,
+				      bottom_x,
+				      chrome_top,
+				      FB_3DS_BOTTOM_SCREEN_WIDTH,
+				      bar_h);
 	}
 
-	fbtk_set_pos_and_size(gw->status, 0, win_h - furniture_width,
-			      win_w, furniture_width);
+	fbtk_set_pos_and_size(gw->status,
+			      bottom_x,
+			      win_h - furniture_width,
+			      FB_3DS_BOTTOM_SCREEN_WIDTH,
+			      furniture_width);
 
 	if (gw->top_title_label != NULL) {
 		fb_3ds_position_top_title(gw, browser_window_get_title(gw->bw));
 	}
+
+	fb_3ds_raise_bottom_chrome(gw);
+	fb_3ds_request_bottom_chrome_redraw(gw);
 }
 
 static void
@@ -2513,6 +2982,9 @@ fb_3ds_set_urlbar_shown(struct gui_window *gw, bool show)
 
 	fb_3ds_layout_screens(gw);
 	fb_browser_request_redraw(gw);
+	if (!show) {
+		fb_3ds_repaint_toolbar_sync(gw);
+	}
 }
 #endif
 
@@ -2569,8 +3041,19 @@ create_3ds_browser_panes(struct gui_window *gw)
 {
 	struct browser_widget_s *browser_widget;
 	int win_h = fbtk_get_height(gw->window);
+	int bottom_x = fb_3ds_bottom_x(fbtk_get_width(gw->window));
 
 	browser_widget = calloc(1, sizeof(struct browser_widget_s));
+
+	gw->browser_top_bg = fbtk_create_fill(gw->window,
+					      0,
+					      0,
+					      0,
+					      -(win_h - FB_3DS_SCREEN_HEIGHT),
+					      FB_3DS_EMPTY_TOP_LINE_A);
+	fbtk_set_handler(gw->browser_top_bg, FBTK_CBT_REDRAW,
+			 fb_3ds_top_bg_redraw, NULL);
+	fbtk_set_mapping(gw->browser_top_bg, true);
 
 	gw->browser_top = fbtk_create_user(gw->window,
 					    0,
@@ -2579,9 +3062,9 @@ create_3ds_browser_panes(struct gui_window *gw)
 					    -(win_h - FB_3DS_SCREEN_HEIGHT),
 					    browser_widget);
 	gw->browser = fbtk_create_user(gw->window,
-				       0,
+				       bottom_x,
 				       FB_3DS_SCREEN_HEIGHT,
-				       0,
+				       FB_3DS_BOTTOM_SCREEN_WIDTH,
 				       0,
 				       browser_widget);
 
@@ -2594,7 +3077,7 @@ create_3ds_browser_panes(struct gui_window *gw)
 					FB_3DS_TITLE_BOTTOM_MARGIN,
 			fbtk_get_width(gw->window),
 			FB_3DS_TITLE_LABEL_HEIGHT,
-			FB_3DS_PANE_BG,
+			0,
 			FB_3DS_TITLE_COLOUR,
 			false);
 	gw->top_title_shown = true;
@@ -2651,12 +3134,12 @@ create_normal_browser_window(struct gui_window *gw, int furniture_width)
 
 	/* status bar */
 	gw->status = fbtk_create_text(gw->window,
-				      0,
+				      fb_3ds_bottom_x(fbtk_get_width(gw->window)),
 				      fbtk_get_height(gw->window) - furniture_width,
 #ifdef __3DS__
-				      fbtk_get_width(gw->window),
+				      FB_3DS_BOTTOM_SCREEN_WIDTH,
 #else
-				      statusbar_width,
+				      fbtk_get_width(gw->window),
 #endif
 				      furniture_width,
 				      FB_FRAME_COLOUR, FB_COLOUR_BLACK,
@@ -2729,6 +3212,14 @@ create_normal_browser_window(struct gui_window *gw, int furniture_width)
 
 #ifdef __3DS__
 	fb_3ds_layout_screens(gw);
+	if (gw->toolbar != NULL) {
+		struct fb_3ds_action_item items[FB_3DS_ACTION_MAX];
+		int count = fb_3ds_collect_actions(gw,
+				nsoption_charp(fb_toolbar_layout), items);
+
+		fb_3ds_place_actions(gw, items, count, false);
+	}
+	fb_3ds_raise_bottom_chrome(gw);
 #else
 	/* browser widget */
 	create_browser_widget(gw, toolbar_height, furniture_width);
@@ -2766,6 +3257,7 @@ resize_normal_browser_window(struct gui_window *gw, int furniture_width)
 		fb_3ds_place_actions(gw, items, count, false);
 	}
 
+	fb_3ds_raise_bottom_chrome(gw);
 	browser_window_schedule_reformat(gw->bw);
 #else
 	width = fbtk_get_width(gw->window);
@@ -2886,6 +3378,7 @@ fb_window_invalidate_area(struct gui_window *g, const struct rect *rect)
 
 	if (rect != NULL) {
 		int scrolly = bwidget->scrolly;
+		int top_inset = fb_3ds_pane_content_inset(g->browser_top);
 		int top_doc_start = scrolly > FB_3DS_SCREEN_HEIGHT ?
 				scrolly - FB_3DS_SCREEN_HEIGHT : 0;
 		int bottom_h = fbtk_get_height(g->browser);
@@ -2899,9 +3392,11 @@ fb_window_invalidate_area(struct gui_window *g, const struct rect *rect)
 
 			if (wy1 > wy0) {
 				fb_queue_redraw(g->browser_top,
-						rect->x0 - bwidget->scrollx,
+						rect->x0 - bwidget->scrollx +
+						top_inset,
 						wy0,
-						rect->x1 - bwidget->scrollx,
+						rect->x1 - bwidget->scrollx +
+						top_inset,
 						wy1);
 			}
 		}

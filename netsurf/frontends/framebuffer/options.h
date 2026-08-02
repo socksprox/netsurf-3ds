@@ -41,6 +41,8 @@ NSOPTION_INTEGER(fb_toolbar_size, 30)
 NSOPTION_STRING(fb_toolbar_layout, NULL)
 /** enable on screen keyboard */
 NSOPTION_BOOL(fb_osk, false)
+/** request mobile versions of sites */
+NSOPTION_BOOL(fb_mobile_site, false)
 
 /***** font options *****/
 

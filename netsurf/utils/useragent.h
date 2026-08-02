@@ -34,4 +34,7 @@ const char * user_agent_string(void);
  */
 void free_user_agent_string(void);
 
+/** Rebuild the user agent string after a runtime setting change. */
+void user_agent_rebuild(void);
+
 #endif
