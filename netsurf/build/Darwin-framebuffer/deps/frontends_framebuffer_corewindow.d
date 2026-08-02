@@ -11,7 +11,8 @@ build/Darwin-framebuffer/deps/frontends_framebuffer_corewindow.d build/Darwin-fr
  include/netsurf/mouse.h include/netsurf/plot_style.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h \
  frontends/framebuffer/gui.h frontends/framebuffer/fbtk.h \
- frontends/framebuffer/corewindow.h include/netsurf/core_window.h
+ frontends/framebuffer/corewindow.h include/netsurf/core_window.h \
+ frontends/framebuffer/fbtk/widget.h
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb_plot.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb_event.h:
@@ -34,3 +35,4 @@ frontends/framebuffer/gui.h:
 frontends/framebuffer/fbtk.h:
 frontends/framebuffer/corewindow.h:
 include/netsurf/core_window.h:
+frontends/framebuffer/fbtk/widget.h:

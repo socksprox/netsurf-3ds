@@ -25,13 +25,14 @@
 #define FB_LOCAL_HISTORY_H
 
 struct browser_window;
+struct gui_window;
 
 /**
  * make the local history window visible.
  *
  * \return NSERROR_OK on success else appropriate error code on faliure.
  */
-nserror fb_local_history_present(fbtk_widget_t *parent, struct browser_window *bw);
+nserror fb_local_history_present(struct gui_window *gw, struct browser_window *bw);
 
 /**
  * hide the local history window from being visible.

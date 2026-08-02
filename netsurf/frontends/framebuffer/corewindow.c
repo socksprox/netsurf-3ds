@@ -53,6 +53,11 @@
 #include "framebuffer/gui.h"
 #include "framebuffer/fbtk.h"
 #include "framebuffer/corewindow.h"
+#include "fbtk/widget.h"
+
+
+nserror fb_corewindow_resize(struct fb_corewindow *fb_cw,
+		int x, int y, int width, int height);
 
 
 /* toolkit event handlers that do generic things and call internal callbacks */
@@ -107,10 +112,10 @@ static int fb_cw_draw_event(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 
 	nsfb_claim(fbtk_get_nsfb(widget), &rbox);
 
-	clip.x0 = fb_cw->scrollx;
-	clip.y0 = fb_cw->scrolly;
-	clip.x1 = fbtk_get_width(widget) + fb_cw->scrollx;
-	clip.y1 = fbtk_get_height(widget) + fb_cw->scrolly;
+	clip.x0 = 0;
+	clip.y0 = 0;
+	clip.x1 = fbtk_get_width(widget);
+	clip.y1 = fbtk_get_height(widget);
 
 	fb_cw->draw(fb_cw, &clip);
 
@@ -126,12 +131,13 @@ static int fb_cw_draw_event(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 static nserror
 fb_cw_invalidate(struct core_window *cw, const struct rect *r)
 {
-/*	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
+	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
 
-	toolkit_widget_queue_draw_area(fb_cw->widget,
-				       r->x0, r->y0,
-				       r->x1 - r->x0, r->y1 - r->y0);
-*/
+	(void)r;
+
+	if (fb_cw->drawable != NULL) {
+		fbtk_request_redraw(fb_cw->drawable);
+	}
 	return NSERROR_OK;
 }
 
@@ -139,22 +145,24 @@ fb_cw_invalidate(struct core_window *cw, const struct rect *r)
 static nserror
 fb_cw_update_size(struct core_window *cw, int width, int height)
 {
-/*	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
+	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
 
-	toolkit_widget_set_size_request(FB_WIDGET(fb_cw->drawing_area),
-				    width, height);
-*/
-	return NSERROR_OK;
+	return fb_corewindow_resize(fb_cw,
+			fb_cw->wnd->x,
+			fb_cw->wnd->y,
+			width, height);
 }
 
 
 static nserror
 fb_cw_set_scroll(struct core_window *cw, int x, int y)
 {
-/*	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
+	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
 
-	toolkit_scroll_widget(fb_cw->widget, r);
-*/
+	fb_cw->scrollx = x;
+	fb_cw->scrolly = y;
+	fbtk_request_redraw(fb_cw->drawable);
+
 	return NSERROR_OK;
 }
 
@@ -162,11 +170,12 @@ fb_cw_set_scroll(struct core_window *cw, int x, int y)
 static nserror
 fb_cw_get_scroll(const struct core_window *cw, int *x, int *y)
 {
-/*	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
+	struct fb_corewindow *fb_cw = (struct fb_corewindow *)cw;
 
-	toolkit_scroll_widget(fb_cw->widget, r);
-*/
-	return NSERROR_NOT_IMPLEMENTED;
+	*x = fb_cw->scrollx;
+	*y = fb_cw->scrolly;
+
+	return NSERROR_OK;
 }
 
 
@@ -213,11 +222,7 @@ nserror fb_corewindow_init(fbtk_widget_t *parent, struct fb_corewindow *fb_cw)
 	fb_cw->drag_status = CORE_WINDOW_DRAG_NONE;
 
 	/* container window */
-#ifdef __3DS__
-	fb_cw->wnd = fbtk_create_window(parent, 0, FB_3DS_SCREEN_HEIGHT, 0, 0, 0);
-#else
-	fb_cw->wnd = fbtk_create_window(parent, 0, 0, 0, 0, 0);
-#endif
+	fb_cw->wnd = fbtk_create_window(parent, 0, 0, 0, 0, FB_FRAME_COLOUR);
 
 	fb_cw->drawable = fbtk_create_user(fb_cw->wnd,
 					   0, 0,
@@ -273,6 +278,33 @@ nserror fb_corewindow_init(fbtk_widget_t *parent, struct fb_corewindow *fb_cw)
 			 furniture_width,
 			 FB_FRAME_COLOUR);
 
+
+	return NSERROR_OK;
+}
+
+/* exported function documented in fb/corewindow.h */
+nserror fb_corewindow_resize(struct fb_corewindow *fb_cw,
+		int x, int y, int width, int height)
+{
+	int furniture_width = nsoption_int(fb_furniture_size);
+
+	fbtk_set_pos_and_size(fb_cw->wnd, x, y, width, height);
+
+	fbtk_set_pos_and_size(fb_cw->drawable, 0, 0,
+			      width - furniture_width,
+			      height - furniture_width);
+
+	fbtk_reposition_hscroll(fb_cw->hscroll,
+				0, height - furniture_width,
+				width - furniture_width,
+				furniture_width);
+
+	fbtk_reposition_vscroll(fb_cw->vscroll,
+				width - furniture_width, 0,
+				furniture_width,
+				height - furniture_width);
+
+	fbtk_request_redraw(fb_cw->wnd);
 
 	return NSERROR_OK;
 }

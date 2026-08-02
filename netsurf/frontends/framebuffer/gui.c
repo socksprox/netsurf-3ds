@@ -1488,7 +1488,7 @@ fb_localhistory_btn_clik(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	if (cbi->event->type != NSFB_EVENT_KEY_UP)
 		return 0;
 
-	fb_local_history_present(fbtk, gw->bw);
+	fb_local_history_present(gw, gw->bw);
 
 	return 0;
 }

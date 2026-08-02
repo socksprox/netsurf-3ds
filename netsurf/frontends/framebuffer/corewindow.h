@@ -95,6 +95,12 @@ struct fb_corewindow {
  */
 nserror fb_corewindow_init(fbtk_widget_t *parent, struct fb_corewindow *fb_cw);
 
+/**
+ * Resize a core window and its child widgets.
+ */
+nserror fb_corewindow_resize(struct fb_corewindow *fb_cw,
+		int x, int y, int width, int height);
+
 
 /**
  * finalise elements of fb core window.

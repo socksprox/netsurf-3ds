@@ -31,6 +31,7 @@
 #include <libnsfb_event.h>
 
 #include "utils/log.h"
+#include "utils/nsoption.h"
 #include "netsurf/keypress.h"
 #include "netsurf/plotters.h"
 #include "desktop/local_history.h"
@@ -48,16 +49,11 @@ struct fb_local_history_window {
 };
 
 static struct fb_local_history_window *local_history_window = NULL;
+static fbtk_widget_t *local_history_parent = NULL;
 
 
 /**
  * callback for mouse action on local history window
- *
- * \param fb_cw The fb core window structure.
- * \param mouse_state netsurf mouse state on event
- * \param x location of event
- * \param y location of event
- * \return NSERROR_OK on success otherwise apropriate error code
  */
 static nserror
 fb_local_history_mouse(struct fb_corewindow *fb_cw,
@@ -65,7 +61,7 @@ fb_local_history_mouse(struct fb_corewindow *fb_cw,
 		    int x, int y)
 {
 	struct fb_local_history_window *lhw;
-	/* technically degenerate container of */
+
 	lhw = (struct fb_local_history_window *)fb_cw;
 
 	local_history_mouse_action(lhw->session, mouse_state, x, y);
@@ -80,16 +76,12 @@ fb_local_history_mouse(struct fb_corewindow *fb_cw,
 
 /**
  * callback for keypress on local history window
- *
- * \param fb_cw The fb core window structure.
- * \param nskey The netsurf key code
- * \return NSERROR_OK on success otherwise apropriate error code
  */
 static nserror
 fb_local_history_key(struct fb_corewindow *fb_cw, uint32_t nskey)
 {
 	struct fb_local_history_window *lhw;
-	/* technically degenerate container of */
+
 	lhw = (struct fb_local_history_window *)fb_cw;
 
 	if (local_history_keypress(lhw->session, nskey)) {
@@ -101,10 +93,6 @@ fb_local_history_key(struct fb_corewindow *fb_cw, uint32_t nskey)
 
 /**
  * callback on draw event for local history window
- *
- * \param fb_cw The fb core window structure.
- * \param r The rectangle of the window that needs updating.
- * \return NSERROR_OK on success otherwise apropriate error code
  */
 static nserror
 fb_local_history_draw(struct fb_corewindow *fb_cw, struct rect *r)
@@ -115,19 +103,28 @@ fb_local_history_draw(struct fb_corewindow *fb_cw, struct rect *r)
 		.plot = &fb_plotters
 	};
 	struct fb_local_history_window *lhw;
+	struct rect clip;
+	int x;
+	int y;
 
-	/* technically degenerate container of */
+	(void)r;
+
 	lhw = (struct fb_local_history_window *)fb_cw;
 
-	local_history_redraw(lhw->session, 0, 0, r, &ctx);
+	x = fbtk_get_absx(lhw->core.drawable);
+	y = fbtk_get_absy(lhw->core.drawable);
 
-	return NSERROR_OK;
+	clip.x0 = 0;
+	clip.y0 = 0;
+	clip.x1 = fbtk_get_width(lhw->core.drawable);
+	clip.y1 = fbtk_get_height(lhw->core.drawable);
+
+	return local_history_redraw(lhw->session, x, y, &clip, &ctx);
 }
+
 
 /**
  * Creates the window for the local history view.
- *
- * \return NSERROR_OK on success else appropriate error code on faliure.
  */
 static nserror
 fb_local_history_init(fbtk_widget_t *parent,
@@ -137,9 +134,6 @@ fb_local_history_init(fbtk_widget_t *parent,
 	struct fb_local_history_window *ncwin;
 	nserror res;
 
-	/* memoise window so it can be represented when necessary
-	 * instead of recreating every time.
-	 */
 	if ((*win_out) != NULL) {
 		res = local_history_set((*win_out)->session, bw);
 		return res;
@@ -169,59 +163,74 @@ fb_local_history_init(fbtk_widget_t *parent,
 		return res;
 	}
 
+	fbtk_set_mapping(ncwin->core.wnd, false);
+
 	*win_out = ncwin;
 
 	return NSERROR_OK;
 }
 
 
-/* exported function documented gtk/history.h */
-nserror fb_local_history_present(fbtk_widget_t *parent,
+/* exported function documented in local_history.h */
+nserror fb_local_history_present(struct gui_window *gw,
 				 struct browser_window *bw)
 {
 	nserror res;
-	int prnt_width, prnt_height;
-	int width, height;
+	fbtk_widget_t *parent = gw->window;
+	int furniture_width = nsoption_int(fb_furniture_size);
+	int toolbar_height = 0;
+	int pos_x;
+	int pos_y;
+	int width;
+	int height;
+
+	if (gw->toolbar != NULL) {
+		toolbar_height = fbtk_get_height(gw->toolbar);
+	}
+
+	if (local_history_window != NULL &&
+	    local_history_parent != parent) {
+		fb_local_history_destroy();
+	}
 
 	res = fb_local_history_init(parent, bw, &local_history_window);
-	if (res == NSERROR_OK) {
-
-		 prnt_width = fbtk_get_width(parent);
-		 prnt_height = fbtk_get_height(parent);
-#ifdef __3DS__
-		 prnt_height -= FB_3DS_SCREEN_HEIGHT;
-#endif
-
-		/* resize history widget ensureing the drawing area is
-		 * no larger than parent window
-		 */
-		res = local_history_get_size(local_history_window->session,
-					     &width,
-					     &height);
-		if (width > prnt_width) {
-			width = prnt_width;
-		}
-		if (height > prnt_height) {
-			height = prnt_height;
-		}
-
-#ifdef __3DS__
-		fbtk_set_pos_and_size(local_history_window->core.wnd,
-				      0, FB_3DS_SCREEN_HEIGHT,
-				      prnt_width, prnt_height);
-#endif
-		/* should update scroll area with contents */
-
-		fbtk_set_zorder(local_history_window->core.wnd, INT_MIN);
-		fbtk_set_mapping(local_history_window->core.wnd, true);
-		local_history_scroll_to_cursor(local_history_window->session);
+	if (res != NSERROR_OK) {
+		return res;
 	}
+
+	local_history_parent = parent;
+
+	pos_x = 0;
+	width = fbtk_get_width(parent);
+
+#ifdef __3DS__
+	/* Bottom screen only: below toolbar, above status bar. */
+	pos_y = FB_3DS_SCREEN_HEIGHT + toolbar_height;
+	height = fbtk_get_height(parent) - pos_y - furniture_width;
+#else
+	pos_y = toolbar_height;
+	height = fbtk_get_height(parent) - toolbar_height - furniture_width;
+#endif
+
+	if (width < furniture_width) {
+		width = furniture_width;
+	}
+	if (height < furniture_width) {
+		height = furniture_width;
+	}
+
+	fb_corewindow_resize(&local_history_window->core,
+			     pos_x, pos_y, width, height);
+
+	fbtk_set_zorder(local_history_window->core.wnd, INT_MIN);
+	fbtk_set_mapping(local_history_window->core.wnd, true);
+	local_history_scroll_to_cursor(local_history_window->session);
 
 	return res;
 }
 
 
-/* exported function documented gtk/history.h */
+/* exported function documented in local_history.h */
 nserror fb_local_history_hide(void)
 {
 	nserror res = NSERROR_OK;
@@ -236,7 +245,7 @@ nserror fb_local_history_hide(void)
 }
 
 
-/* exported function documented gtk/history.h */
+/* exported function documented in local_history.h */
 nserror fb_local_history_destroy(void)
 {
 	nserror res;
@@ -248,11 +257,10 @@ nserror fb_local_history_destroy(void)
 	res = local_history_fini(local_history_window->session);
 	if (res == NSERROR_OK) {
 		res = fb_corewindow_fini(&local_history_window->core);
-		//gtk_widget_destroy(GTK_WIDGET(local_history_window->wnd));
 		free(local_history_window);
 		local_history_window = NULL;
+		local_history_parent = NULL;
 	}
 
 	return res;
-
 }
