@@ -91,6 +91,7 @@ enum fb_app_overlay_state {
 enum fb_menu_icon {
 	FB_MENU_ICON_GEAR = 0,
 	FB_MENU_ICON_PHONE,
+	FB_MENU_ICON_SCRIPT,
 	FB_MENU_ICON_STAR,
 	FB_MENU_ICON_DOWNLOAD,
 	FB_MENU_ICON_HISTORY,
@@ -102,19 +103,31 @@ enum fb_menu_item_type {
 	FB_MENU_ITEM_TOGGLE,
 };
 
+enum fb_menu_toggle_option {
+	FB_MENU_TOGGLE_NONE = 0,
+	FB_MENU_TOGGLE_MOBILE_SITE,
+	FB_MENU_TOGGLE_JAVASCRIPT,
+};
+
 struct fb_menu_item {
 	const char *label;
 	enum fb_menu_icon icon;
 	enum fb_menu_item_type type;
+	enum fb_menu_toggle_option toggle;
 };
 
 static const struct fb_menu_item fb_menu_items[] = {
-	{ "Settings", FB_MENU_ICON_GEAR, FB_MENU_ITEM_DISABLED },
-	{ "Request mobile site", FB_MENU_ICON_PHONE, FB_MENU_ITEM_TOGGLE },
-	{ "Bookmarks", FB_MENU_ICON_STAR, FB_MENU_ITEM_DISABLED },
-	{ "Downloads", FB_MENU_ICON_DOWNLOAD, FB_MENU_ITEM_DISABLED },
-	{ "History", FB_MENU_ICON_HISTORY, FB_MENU_ITEM_DISABLED },
-	{ "Help", FB_MENU_ICON_HELP, FB_MENU_ITEM_DISABLED },
+	{ "Settings", FB_MENU_ICON_GEAR, FB_MENU_ITEM_DISABLED, FB_MENU_TOGGLE_NONE },
+	{ "Request mobile site", FB_MENU_ICON_PHONE, FB_MENU_ITEM_TOGGLE,
+	  FB_MENU_TOGGLE_MOBILE_SITE },
+	{ "Enable JavaScript", FB_MENU_ICON_SCRIPT, FB_MENU_ITEM_TOGGLE,
+	  FB_MENU_TOGGLE_JAVASCRIPT },
+	{ "Bookmarks", FB_MENU_ICON_STAR, FB_MENU_ITEM_DISABLED, FB_MENU_TOGGLE_NONE },
+	{ "Downloads", FB_MENU_ICON_DOWNLOAD, FB_MENU_ITEM_DISABLED,
+	  FB_MENU_TOGGLE_NONE },
+	{ "History", FB_MENU_ICON_HISTORY, FB_MENU_ITEM_DISABLED,
+	  FB_MENU_TOGGLE_NONE },
+	{ "Help", FB_MENU_ICON_HELP, FB_MENU_ITEM_DISABLED, FB_MENU_TOGGLE_NONE },
 };
 
 #define FB_MENU_ITEM_COUNT \
@@ -131,6 +144,7 @@ struct fb_app_overlay {
 	fbtk_widget_t *settings_top;
 	fbtk_widget_t *settings_bottom;
 	fbtk_widget_t *mobile_toggle_btn;
+	fbtk_widget_t *javascript_toggle_btn;
 
 	int popup_x;
 	int popup_y;
@@ -151,10 +165,40 @@ static struct fb_app_overlay app_overlay = {
 
 static void fb_app_overlay_refresh(void);
 static void fb_app_mobile_toggle_update(void);
+static void fb_app_javascript_toggle_update(void);
 static void fb_app_settings_save(void);
 static void fb_app_menu_layout(struct gui_window *gw);
 static void fb_app_menu_clamp_scroll(void);
 static void fb_app_overlay_hide_internal(struct gui_window *gw);
+
+static bool
+fb_menu_toggle_get(enum fb_menu_toggle_option toggle)
+{
+	switch (toggle) {
+	case FB_MENU_TOGGLE_MOBILE_SITE:
+		return nsoption_bool(fb_mobile_site);
+	case FB_MENU_TOGGLE_JAVASCRIPT:
+		return nsoption_bool(enable_javascript);
+	default:
+		return false;
+	}
+}
+
+static void
+fb_menu_toggle_set(enum fb_menu_toggle_option toggle, bool value)
+{
+	switch (toggle) {
+	case FB_MENU_TOGGLE_MOBILE_SITE:
+		nsoption_set_bool(fb_mobile_site, value);
+		user_agent_rebuild();
+		break;
+	case FB_MENU_TOGGLE_JAVASCRIPT:
+		nsoption_set_bool(enable_javascript, value);
+		break;
+	default:
+		break;
+	}
+}
 
 static void
 fb_menu_plot_roundrect_fill(nsfb_t *nsfb, int x0, int y0, int x1, int y1,
@@ -354,6 +398,28 @@ fb_menu_plot_icon(nsfb_t *nsfb, enum fb_menu_icon icon, int x, int y,
 		rect.y1 = cy + 7;
 		nsfb_plot_rectangle_fill(nsfb, &rect, colour);
 		break;
+
+	case FB_MENU_ICON_SCRIPT:
+	{
+		nsfb_bbox_t line;
+
+		line.x0 = cx - 6;
+		line.y0 = cy + 1;
+		line.x1 = cx - 2;
+		line.y1 = cy - 5;
+		nsfb_plot_line(nsfb, &line, &pen);
+		line.x0 = cx + 6;
+		line.y0 = cy + 1;
+		line.x1 = cx + 2;
+		line.y1 = cy - 5;
+		nsfb_plot_line(nsfb, &line, &pen);
+		line.x0 = cx - 2;
+		line.y0 = cy + 5;
+		line.x1 = cx + 2;
+		line.y1 = cy + 5;
+		nsfb_plot_line(nsfb, &line, &pen);
+		break;
+	}
 
 	case FB_MENU_ICON_STAR:
 	{
@@ -723,7 +789,7 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 					FB_3DS_POPUP_CHECKBOX) / 2;
 
 			fb_menu_plot_checkbox(nsfb, check_x, check_y,
-					nsoption_bool(fb_mobile_site));
+					fb_menu_toggle_get(item->toggle));
 		}
 
 		divider.x0 = panel_x0 + FB_3DS_POPUP_ICON_PAD;
@@ -784,8 +850,10 @@ fb_menu_activate_row(int row)
 		break;
 
 	case FB_MENU_ITEM_TOGGLE:
-		nsoption_set_bool(fb_mobile_site, !nsoption_bool(fb_mobile_site));
-		user_agent_rebuild();
+		fb_menu_toggle_set(item->toggle,
+				!fb_menu_toggle_get(item->toggle));
+		fb_app_mobile_toggle_update();
+		fb_app_javascript_toggle_update();
 		fb_app_settings_save();
 		fbtk_request_redraw(app_overlay.menu_popup);
 		break;
@@ -941,9 +1009,26 @@ fb_app_mobile_toggle_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		return 0;
 	}
 
-	nsoption_set_bool(fb_mobile_site, !nsoption_bool(fb_mobile_site));
-	user_agent_rebuild();
+	fb_menu_toggle_set(FB_MENU_TOGGLE_MOBILE_SITE,
+			!fb_menu_toggle_get(FB_MENU_TOGGLE_MOBILE_SITE));
 	fb_app_mobile_toggle_update();
+	fb_app_settings_save();
+	fbtk_request_redraw(app_overlay.settings_bottom);
+	fb_gui_flush_display();
+
+	return 0;
+}
+
+static int
+fb_app_javascript_toggle_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
+{
+	if (cbi->event->type != NSFB_EVENT_KEY_UP) {
+		return 0;
+	}
+
+	fb_menu_toggle_set(FB_MENU_TOGGLE_JAVASCRIPT,
+			!fb_menu_toggle_get(FB_MENU_TOGGLE_JAVASCRIPT));
+	fb_app_javascript_toggle_update();
 	fb_app_settings_save();
 	fbtk_request_redraw(app_overlay.settings_bottom);
 	fb_gui_flush_display();
@@ -962,6 +1047,20 @@ fb_app_mobile_toggle_update(void)
 		fbtk_set_text(app_overlay.mobile_toggle_btn, "On");
 	} else {
 		fbtk_set_text(app_overlay.mobile_toggle_btn, "Off");
+	}
+}
+
+static void
+fb_app_javascript_toggle_update(void)
+{
+	if (app_overlay.javascript_toggle_btn == NULL) {
+		return;
+	}
+
+	if (nsoption_bool(enable_javascript)) {
+		fbtk_set_text(app_overlay.javascript_toggle_btn, "On");
+	} else {
+		fbtk_set_text(app_overlay.javascript_toggle_btn, "Off");
 	}
 }
 
@@ -1053,6 +1152,7 @@ fb_app_settings_init(struct gui_window *gw)
 	fbtk_widget_t *label;
 	int win_w = fbtk_get_width(parent);
 	int row_y = FB_3DS_SETTINGS_TITLE_HEIGHT + FB_3DS_MENU_PADDING;
+	int js_row_y = row_y + FB_3DS_MENU_ROW_HEIGHT + FB_3DS_MENU_PADDING;
 	int toggle_w = 48;
 	int label_w = win_w - FB_3DS_MENU_PADDING * 3 - toggle_w;
 
@@ -1111,6 +1211,28 @@ fb_app_settings_init(struct gui_window *gw)
 			fb_app_mobile_toggle_click,
 			NULL);
 	fb_app_mobile_toggle_update();
+
+	label = fbtk_create_text(app_overlay.settings_bottom,
+				 FB_3DS_MENU_PADDING,
+				 js_row_y,
+				 label_w,
+				 FB_3DS_MENU_ROW_HEIGHT,
+				 FB_FRAME_COLOUR,
+				 FB_COLOUR_BLACK,
+				 false);
+	fbtk_set_text(label, "Enable JavaScript");
+
+	app_overlay.javascript_toggle_btn = fbtk_create_text_button(
+			app_overlay.settings_bottom,
+			win_w - FB_3DS_MENU_PADDING - toggle_w,
+			js_row_y,
+			toggle_w,
+			FB_3DS_MENU_ROW_HEIGHT,
+			FB_COLOUR_WHITE,
+			FB_COLOUR_BLACK,
+			fb_app_javascript_toggle_click,
+			NULL);
+	fb_app_javascript_toggle_update();
 
 	button = fbtk_create_text_button(app_overlay.settings_bottom,
 					 FB_3DS_MENU_PADDING,
@@ -1219,6 +1341,7 @@ fb_app_menu_destroy(void)
 	app_overlay.menu_backdrop = NULL;
 	app_overlay.menu_popup = NULL;
 	app_overlay.mobile_toggle_btn = NULL;
+	app_overlay.javascript_toggle_btn = NULL;
 	app_overlay.gw = NULL;
 	app_overlay.state = FB_APP_OVERLAY_NONE;
 

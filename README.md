@@ -22,13 +22,14 @@ This is where NetSurf comes in. It is a lightweight, super fast web browser that
 - browse websites with up to SSL 1.2
 - browse the SD card and open local text, html, and image files (go to file:///)
 - html and css support
+- basic JavaScript support (Duktape; enable in app menu)
 - Use the 80MB HiMem mode through `nsfb_himem.cia`
 
 ## What it might be able to do soon&trade;:
 
 The NetSurf codebase contains some features that don't work yet on 3DS, but might work soon with further porting efforts.
 - Font support (FreeType)
-- super basic JavaScript support (via internal "duktape" library)
+- super basic JavaScript support (via internal "duktape" library) — toggle in app menu or Settings
 - SVG and WebP support (requires external libraries to be ported first)
 - Webpage zoom (+/-)
 
@@ -40,7 +41,7 @@ Here are some things not in the code base, but are planned to be added:
 - SSL implementation is partially broken (i.e. you can visit SSL websites, but you can't view the SSL certificate information)
 - some things (e.g. larger images) distort while scrolling.
 - Text is often cut off or wraps incorrectly
-- JavaScript support is disabled in the build process
+- JavaScript is experimental; enable via app menu or Settings (uses extra memory; HiMem recommended)
 - Support for several media types is disabled. (SVG, WebP)
 
 ## What it will probably never do:

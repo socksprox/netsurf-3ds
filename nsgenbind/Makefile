@@ -34,7 +34,6 @@ endif
 
 CFLAGS := -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L \
 	-I$(CURDIR)/include/ -I$(CURDIR)/src \
-  -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
 	$(WARNFLAGS) $(CFLAGS)
 ifneq ($(GCCVER),2)
   CFLAGS := $(CFLAGS) -std=c99

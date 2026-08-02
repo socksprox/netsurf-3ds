@@ -27,10 +27,13 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
   JOBS ?= $(shell sysctl -n hw.ncpu)
   BISON_BIN := $(wildcard /opt/homebrew/opt/bison/bin)
+  NATIVE_CC ?= /usr/bin/cc
 else
   JOBS ?= $(shell nproc 2>/dev/null || echo 4)
   BISON_BIN :=
+  NATIVE_CC ?= cc
 endif
+NATIVE_BUILD ?= $(shell $(NATIVE_CC) -dumpmachine)
 
 export DEVKITPRO
 export DEVKITARM
@@ -129,7 +132,7 @@ endef
 
 # clean macro for each host sub target
 define do_build_clean
-	$(MAKE) distclean --directory=$1 HOST=$(HOST) NSSHARED=$(TMP_NSSHARED) Q=$(Q)
+	$(MAKE) distclean --directory=$1 HOST=$(NATIVE_BUILD) NSSHARED=$(TMP_NSSHARED) Q=$(Q)
 
 endef
 
@@ -141,7 +144,7 @@ endef
 
 # prefixed install macro for each host sub target
 define do_build_prefix_install
-	$(MAKE) install --directory=$1 HOST=$(BUILD) PREFIX=$(TMP_PREFIX) Q=$(Q) DESTDIR=
+	$(MAKE) install --directory=$1 HOST=$(NATIVE_BUILD) PREFIX=$(TMP_PREFIX) Q=$(Q) DESTDIR=
 
 endef
 
