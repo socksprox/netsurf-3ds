@@ -21,6 +21,10 @@
 
 #ifdef __3DS__
 #define FB_3DS_SCREEN_HEIGHT 240
+#define FB_3DS_BOTTOM_SCREEN_WIDTH 320
+#define FB_3DS_FRAMEBUFFER_WIDTH 400
+#define FB_3DS_BOTTOM_X_OFFSET \
+	((FB_3DS_FRAMEBUFFER_WIDTH - FB_3DS_BOTTOM_SCREEN_WIDTH) / 2)
 #endif
 
 struct fbtk_widget_s;
@@ -37,6 +41,9 @@ struct gui_window {
 	struct fbtk_widget_s *back;
 	struct fbtk_widget_s *forward;
 	struct fbtk_widget_s *history;
+#ifdef __3DS__
+	struct fbtk_widget_s *menu;
+#endif
 	struct fbtk_widget_s *stop;
 	struct fbtk_widget_s *reload;
 	struct fbtk_widget_s *close;
@@ -48,8 +55,12 @@ struct gui_window {
 	struct fbtk_widget_s *browser;
 #ifdef __3DS__
 	struct fbtk_widget_s *browser_top;
+	struct fbtk_widget_s *browser_top_bg;
 	struct fbtk_widget_s *top_title_label;
 	bool top_title_shown;
+	/** Container holding the url entry above the page. */
+	struct fbtk_widget_s *urlbar;
+	bool urlbar_shown;
 #endif
 	struct fbtk_widget_s *toolbar;
 	struct fbtk_widget_s *bottom_right;

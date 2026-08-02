@@ -2,6 +2,7 @@
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/crti.o
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/crtbegin.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-caret_image.o
+build/Darwin-framebuffer/build_Darwin-framebuffer_image-hamburger_image.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-hand_image.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-history_image.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-history_image_g.o
@@ -129,6 +130,7 @@ build/Darwin-framebuffer/desktop_textarea.o
 build/Darwin-framebuffer/desktop_textinput.o
 build/Darwin-framebuffer/desktop_treeview.o
 build/Darwin-framebuffer/desktop_version.o
+build/Darwin-framebuffer/frontends_framebuffer_app_menu.o
 build/Darwin-framebuffer/frontends_framebuffer_bitmap.o
 build/Darwin-framebuffer/frontends_framebuffer_clipboard.o
 build/Darwin-framebuffer/frontends_framebuffer_corewindow.o

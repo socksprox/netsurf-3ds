@@ -43,7 +43,7 @@ build/Darwin-framebuffer/deps/frontends_framebuffer_gui.d build/Darwin-framebuff
  /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftglyph.h \
  frontends/framebuffer/clipboard.h frontends/framebuffer/fetch.h \
  frontends/framebuffer/bitmap.h frontends/framebuffer/local_history.h \
- /opt/devkitpro/libctru/include/3ds.h \
+ frontends/framebuffer/app_menu.h /opt/devkitpro/libctru/include/3ds.h \
  /opt/devkitpro/libctru/include/3ds/types.h \
  /opt/devkitpro/libctru/include/3ds/result.h \
  /opt/devkitpro/libctru/include/3ds/ipc.h \
@@ -192,6 +192,7 @@ frontends/framebuffer/clipboard.h:
 frontends/framebuffer/fetch.h:
 frontends/framebuffer/bitmap.h:
 frontends/framebuffer/local_history.h:
+frontends/framebuffer/app_menu.h:
 /opt/devkitpro/libctru/include/3ds.h:
 /opt/devkitpro/libctru/include/3ds/types.h:
 /opt/devkitpro/libctru/include/3ds/result.h:

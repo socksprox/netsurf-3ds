@@ -91,6 +91,7 @@ FB_IMAGE_right_arrow := icons/forward.png
 FB_IMAGE_reload := icons/reload.png
 FB_IMAGE_stop_image := icons/stop.png
 FB_IMAGE_history_image := icons/history.png
+FB_IMAGE_hamburger_image := icons/hamburger.png
 
 FB_IMAGE_left_arrow_g := icons/back_g.png
 FB_IMAGE_right_arrow_g := icons/forward_g.png
@@ -173,7 +174,7 @@ $(eval $(foreach V,$(filter FB_FONT_$(NETSURF_FB_FONTLIB)_%,$(.VARIABLES)),$(cal
 
 # S_FRONTEND are sources purely for the framebuffer build
 S_FRONTEND := gui.c framebuffer.c schedule.c bitmap.c fetch.c	\
-	findfile.c corewindow.c local_history.c clipboard.c
+	findfile.c corewindow.c local_history.c app_menu.c clipboard.c
 
 # toolkit sources
 S_FRAMEBUFFER_FBTK := fbtk.c event.c fill.c bitmap.c user.c window.c 	\
