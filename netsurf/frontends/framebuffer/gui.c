@@ -43,6 +43,7 @@
 #include "netsurf/window.h"
 #include "netsurf/misc.h"
 #include "netsurf/netsurf.h"
+#include "netsurf/plot_style.h"
 #include "netsurf/cookie_db.h"
 #include "content/fetch.h"
 
@@ -64,6 +65,12 @@
 
 #ifdef __3DS__
 #define FB_3DS_SCREEN_HEIGHT 240
+#define FB_3DS_PANE_BG FB_FRAME_COLOUR
+#define FB_3DS_TITLE_FONT_HEIGHT 14
+#define FB_3DS_TITLE_LABEL_HEIGHT 20
+#define FB_3DS_TITLE_BOTTOM_MARGIN 16
+#define FB_3DS_TITLE_COLOUR 0xFF666666
+#define px_to_pt(x) (((x) * 72) / FBTK_DPI)
 #endif
 
 fbtk_widget_t *fbtk;
@@ -88,6 +95,9 @@ struct browser_widget_s {
 			    * needs to pan the window.
 			    */
 	int panx, pany; /**< Panning required. */
+#ifdef __3DS__
+	bool user_zoomed; /**< User changed zoom from the default fit-to-width. */
+#endif
 };
 
 #ifdef __3DS__
@@ -137,39 +147,179 @@ fb_browser_request_redraw(struct gui_window *gw)
 }
 
 static void
-gui_window_fit_width(struct gui_window *gw)
+fb_3ds_fill_pane(nsfb_t *nsfb, int x, int y, int w, int h)
 {
-	struct browser_widget_s *bwidget = fb_get_bwidget(gw);
+	nsfb_bbox_t pane;
+
+	pane.x0 = x;
+	pane.y0 = y;
+	pane.x1 = x + w;
+	pane.y1 = y + h;
+	nsfb_plot_rectangle_fill(nsfb, &pane, FB_3DS_PANE_BG);
+}
+
+static void
+fb_3ds_update_top_title_visibility(struct gui_window *gw, int scrolly)
+{
+	bool show = scrolly == 0;
+
+	if (gw->top_title_label == NULL) {
+		return;
+	}
+
+	if (gw->top_title_shown == show) {
+		return;
+	}
+
+	gw->top_title_shown = show;
+	fbtk_set_mapping(gw->top_title_label, show);
+}
+
+static void
+fb_3ds_position_top_title(struct gui_window *gw, const char *title)
+{
+	plot_font_style_t font_style;
+	int text_w;
+	int win_w;
+	int label_y = FB_3DS_SCREEN_HEIGHT - FB_3DS_TITLE_LABEL_HEIGHT -
+			FB_3DS_TITLE_BOTTOM_MARGIN;
+
+	if (gw->top_title_label == NULL) {
+		return;
+	}
+
+	win_w = fbtk_get_width(gw->window);
+	font_style.family = PLOT_FONT_FAMILY_SANS_SERIF;
+	font_style.size = px_to_pt(FB_3DS_TITLE_FONT_HEIGHT * PLOT_STYLE_SCALE);
+	font_style.weight = 400;
+	font_style.flags = FONTF_NONE;
+	font_style.background = FB_3DS_PANE_BG;
+	font_style.foreground = FB_3DS_TITLE_COLOUR;
+
+	if (title == NULL || title[0] == '\0' ||
+			fb_font_width(&font_style, title, strlen(title),
+					&text_w) != NSERROR_OK) {
+		fbtk_set_pos_and_size(gw->top_title_label,
+				0, label_y, win_w, FB_3DS_TITLE_LABEL_HEIGHT);
+		return;
+	}
+
+	fbtk_set_pos_and_size(gw->top_title_label,
+			max(0, (win_w - text_w) / 2), label_y,
+			min(win_w, text_w + 8), FB_3DS_TITLE_LABEL_HEIGHT);
+}
+
+#define FB_3DS_ZOOM_STEP 0.1f
+#define FB_3DS_PINCH_STEP 0.015f
+#define FB_3DS_PINCH_INTERVAL_MS 80
+
+static struct {
+	uint64_t last_apply_ms;
+} fb_3ds_zoom;
+
+static float
+gui_window_minimum_zoom(struct gui_window *gw)
+{
 	int viewport_w;
 	int content_w;
 	int content_h;
-	float scale;
 
 	viewport_w = fbtk_get_width(gw->browser);
 	if (viewport_w <= 0) {
-		return;
+		return 1.0f;
 	}
 
 	if (browser_window_get_extents(gw->bw, false,
 			&content_w, &content_h) != NSERROR_OK) {
-		return;
+		return 1.0f;
 	}
 
 	if (content_w <= 0) {
-		return;
+		return 1.0f;
 	}
 
 	if (content_w <= viewport_w) {
-		scale = 1.0f;
-	} else {
-		scale = (float)viewport_w / (float)content_w;
+		return 1.0f;
 	}
+
+	return (float)viewport_w / (float)content_w;
+}
+
+static void
+gui_window_fit_width(struct gui_window *gw)
+{
+	struct browser_widget_s *bwidget = fb_get_bwidget(gw);
+	float scale;
+
+	if (gw == NULL || gw->browser == NULL || gw->bw == NULL ||
+			bwidget == NULL) {
+		return;
+	}
+
+	scale = gui_window_minimum_zoom(gw);
 
 	if (fabsf(browser_window_get_scale(gw->bw) - scale) > 0.001f) {
 		browser_window_set_scale(gw->bw, scale, true);
 	}
 
 	if (bwidget->scrollx != 0) {
+		widget_set_scroll(gw, 0, bwidget->scrolly);
+	}
+}
+
+static void
+gui_window_zoom_at_point(struct gui_window *gw, float delta)
+{
+	struct browser_widget_s *bwidget;
+	float old_scale;
+	float min_scale;
+	float new_scale;
+	int fx, fy;
+	double ratio;
+	int new_scrollx, new_scrolly;
+
+	if (gw == NULL || gw->browser == NULL || gw->bw == NULL) {
+		return;
+	}
+
+	bwidget = fb_get_bwidget(gw);
+	if (bwidget == NULL) {
+		return;
+	}
+
+	old_scale = browser_window_get_scale(gw->bw);
+	if (old_scale < 0.001f) {
+		return;
+	}
+
+	min_scale = gui_window_minimum_zoom(gw);
+	new_scale = old_scale + delta;
+
+	if (new_scale < min_scale) {
+		new_scale = min_scale;
+	}
+
+	if (fabsf(new_scale - old_scale) < 0.0001f) {
+		return;
+	}
+
+	bwidget->user_zoomed = true;
+	if (fabsf(new_scale - min_scale) < 0.001f) {
+		bwidget->user_zoomed = false;
+	}
+
+	fx = fbtk_get_width(gw->browser) / 2;
+	fy = fb_browser_scroll_viewport_height(gw) / 2;
+	ratio = (double)new_scale / (double)old_scale;
+
+	browser_window_set_scale(gw->bw, new_scale, true);
+
+	new_scrollx = (int)(((double)bwidget->scrollx + fx) * ratio - fx + 0.5);
+	new_scrolly = (int)(((double)bwidget->scrolly + fy) * ratio - fy + 0.5);
+
+	widget_set_scroll(gw, new_scrollx, new_scrolly);
+
+	if (fabsf(new_scale - min_scale) < 0.001f && bwidget->scrollx != 0) {
 		widget_set_scroll(gw, 0, bwidget->scrolly);
 	}
 }
@@ -195,6 +345,56 @@ static struct {
 	int start_screen_y;
 	bool panning;
 } touch_pan;
+
+static void
+fb_3ds_poll_page_zoom(void)
+{
+	struct gui_window *gw = window_list;
+	u32 down, held;
+	float delta = 0.0f;
+	uint64_t now;
+
+	if (gw == NULL || gw->browser == NULL || gw->bw == NULL ||
+			fb_local_history_is_shown()) {
+		return;
+	}
+
+	/* Do not change scale while the user is dragging the page. */
+	if (gui_drag.state != GUI_DRAG_NONE || touch_pan.panning) {
+		return;
+	}
+
+	down = hidKeysDown();
+	held = hidKeysHeld();
+
+	if (down & KEY_ZL) {
+		gui_window_zoom_at_point(gw, -FB_3DS_ZOOM_STEP);
+		return;
+	}
+	if (down & KEY_ZR) {
+		gui_window_zoom_at_point(gw, FB_3DS_ZOOM_STEP);
+		return;
+	}
+
+	if (held & KEY_L) {
+		delta -= FB_3DS_PINCH_STEP;
+	}
+	if (held & KEY_R) {
+		delta += FB_3DS_PINCH_STEP;
+	}
+
+	if (delta == 0.0f) {
+		return;
+	}
+
+	nsu_getmonotonic_ms(&now);
+	if (now < fb_3ds_zoom.last_apply_ms + FB_3DS_PINCH_INTERVAL_MS) {
+		return;
+	}
+
+	gui_window_zoom_at_point(gw, delta);
+	nsu_getmonotonic_ms(&fb_3ds_zoom.last_apply_ms);
+}
 #endif
 
 
@@ -423,6 +623,7 @@ widget_set_scroll(struct gui_window *gw, int sx, int sy)
 	bwidget->panx = 0;
 	bwidget->pany = 0;
 	bwidget->pan_required = false;
+	fb_3ds_update_top_title_visibility(gw, sy);
 	fb_browser_request_redraw(gw);
 }
 #endif
@@ -566,42 +767,56 @@ fb_redraw(fbtk_widget_t *widget,
 		.plot = &fb_plotters
 	};
 	nsfb_t *nsfb = fbtk_get_nsfb(widget);
+	nsfb_bbox_t box;
 #ifdef __3DS__
 	int origin_y;
-	nsfb_bbox_t pane;
 #endif
 
 	x = fbtk_get_absx(widget);
 	y = fbtk_get_absy(widget);
 
-	/* adjust clipping co-ordinates according to window location */
-	bwidget->redraw_box.y0 += y;
-	bwidget->redraw_box.y1 += y;
-	bwidget->redraw_box.x0 += x;
-	bwidget->redraw_box.x1 += x;
+	/* Use a local copy: both 3DS panes share one bwidget and both call
+	 * fb_redraw during the same redraw pass. */
+	box = bwidget->redraw_box;
+	box.y0 += y;
+	box.y1 += y;
+	box.x0 += x;
+	box.x1 += x;
 
-	nsfb_claim(nsfb, &bwidget->redraw_box);
-
-	/* redraw bounding box is relative to window */
-	clip.x0 = bwidget->redraw_box.x0;
-	clip.y0 = bwidget->redraw_box.y0;
-	clip.x1 = bwidget->redraw_box.x1;
-	clip.y1 = bwidget->redraw_box.y1;
+	clip.x0 = box.x0;
+	clip.y0 = box.y0;
+	clip.x1 = box.x1;
+	clip.y1 = box.y1;
 
 #ifdef __3DS__
-	if (widget == gw->browser_top) {
-		pane.x0 = x;
-		pane.y0 = y;
-		pane.x1 = x + fbtk_get_width(widget);
-		pane.y1 = y + fbtk_get_height(widget);
-		nsfb_plot_rectangle_fill(nsfb, &pane, FB_COLOUR_WHITE);
+	{
+		int pane_w = fbtk_get_width(widget);
+		int pane_h = fbtk_get_height(widget);
 
-		if (bwidget->scrolly == 0) {
-			nsfb_update(nsfb, &bwidget->redraw_box);
+		box.x0 = min(box.x0, x);
+		box.y0 = min(box.y0, y);
+		box.x1 = max(box.x1, x + pane_w);
+		box.y1 = max(box.y1, y + pane_h);
+	}
+#endif
+
+	nsfb_claim(nsfb, &box);
+
+#ifdef __3DS__
+	{
+		int pane_w = fbtk_get_width(widget);
+		int pane_h = fbtk_get_height(widget);
+
+		fb_3ds_fill_pane(nsfb, x, y, pane_w, pane_h);
+
+		if (widget == gw->browser_top && bwidget->scrolly == 0) {
+			nsfb_update(nsfb, &box);
 			return;
 		}
 	}
+#endif
 
+#ifdef __3DS__
 	origin_y = fb_browser_pane_origin_y(widget, gw, bwidget, y);
 	browser_window_redraw(bw,
 			x - bwidget->scrollx,
@@ -638,7 +853,7 @@ fb_redraw(fbtk_widget_t *widget,
 		nsfb_plot_line(nsfb, &line, &pen);
 	}
 
-	nsfb_update(fbtk_get_nsfb(widget), &bwidget->redraw_box);
+	nsfb_update(fbtk_get_nsfb(widget), &box);
 
 #ifdef __3DS__
 	if (widget == gw->browser) {
@@ -678,6 +893,7 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		bwidget->panx = 0;
 		bwidget->pany = 0;
 		bwidget->pan_required = false;
+		fb_3ds_update_top_title_visibility(gw, bwidget->scrolly);
 #else
 		fb_pan(widget, bwidget, gw->bw);
 #endif
@@ -915,6 +1131,10 @@ static void framebuffer_run(void)
 			    (event.value.controlcode ==  NSFB_CONTROL_QUIT))
 				fb_complete = true;
 		}
+
+#ifdef __3DS__
+		fb_3ds_poll_page_zoom();
+#endif
 
 		fbtk_redraw(fbtk);
 	}
@@ -2029,6 +2249,18 @@ create_3ds_browser_panes(struct gui_window *gw, int toolbar_height,
 
 	fb_set_browser_pane_handlers(gw, gw->browser_top, false);
 	fb_set_browser_pane_handlers(gw, gw->browser, true);
+
+	gw->top_title_label = fbtk_create_text(gw->window,
+			0,
+			FB_3DS_SCREEN_HEIGHT - FB_3DS_TITLE_LABEL_HEIGHT -
+					FB_3DS_TITLE_BOTTOM_MARGIN,
+			fbtk_get_width(gw->window),
+			FB_3DS_TITLE_LABEL_HEIGHT,
+			FB_3DS_PANE_BG,
+			FB_3DS_TITLE_COLOUR,
+			false);
+	gw->top_title_shown = true;
+	fbtk_set_mapping(gw->top_title_label, true);
 }
 #endif
 
@@ -2056,6 +2288,9 @@ resize_3ds_browser_panes(struct gui_window *gw, int toolbar_height,
 			      0, bottom_y,
 			      fbtk_get_width(gw->window),
 			      win_h - bottom_y - furniture_width);
+	if (gw->top_title_label != NULL) {
+		fb_3ds_position_top_title(gw, browser_window_get_title(gw->bw));
+	}
 	browser_window_schedule_reformat(gw->bw);
 }
 #endif
@@ -2449,10 +2684,14 @@ static void
 gui_window_update_extent(struct gui_window *gw)
 {
 	int w, h;
+	struct browser_widget_s *bwidget = fbtk_get_userpw(gw->browser);
+
 	browser_window_get_extents(gw->bw, true, &w, &h);
 
 #ifdef __3DS__
-	gui_window_fit_width(gw);
+	if (bwidget != NULL && !bwidget->user_zoomed) {
+		gui_window_fit_width(gw);
+	}
 #endif
 
 	if (gw->hscroll != NULL) {
@@ -2476,6 +2715,29 @@ gui_window_set_status(struct gui_window *g, const char *text)
 {
 	fbtk_set_text(g->status, text);
 }
+
+#ifdef __3DS__
+static void
+gui_window_set_title(struct gui_window *g, const char *title)
+{
+	struct browser_widget_s *bwidget;
+
+	if (g->top_title_label == NULL) {
+		return;
+	}
+
+	if (title == NULL) {
+		title = "";
+	}
+
+	fb_3ds_position_top_title(g, title);
+	fbtk_set_text(g->top_title_label, title);
+
+	bwidget = fb_get_bwidget(g);
+	fb_3ds_update_top_title_visibility(g,
+			bwidget != NULL ? bwidget->scrolly : 0);
+}
+#endif
 
 static void
 gui_window_set_pointer(struct gui_window *g, gui_pointer_shape shape)
@@ -2649,6 +2911,18 @@ gui_window_event(struct gui_window *gw, enum gui_window_event event)
 		gui_window_update_extent(gw);
 		break;
 
+#ifdef __3DS__
+	case GW_EVENT_NEW_CONTENT:
+	{
+		struct browser_widget_s *bwidget = fbtk_get_userpw(gw->browser);
+
+		if (bwidget != NULL) {
+			bwidget->user_zoomed = false;
+		}
+		break;
+	}
+#endif
+
 	case GW_EVENT_REMOVE_CARET:
 		gui_window_remove_caret(gw);
 		break;
@@ -2677,6 +2951,9 @@ static struct gui_window_table framebuffer_window_table = {
 	.event = gui_window_event,
 
 	.set_url = gui_window_set_url,
+#ifdef __3DS__
+	.set_title = gui_window_set_title,
+#endif
 	.set_status = gui_window_set_status,
 	.set_pointer = gui_window_set_pointer,
 	.place_caret = gui_window_place_caret,

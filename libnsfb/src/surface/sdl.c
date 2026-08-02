@@ -664,7 +664,7 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 
     u32 k = hidKeysDown();
 
-    if(k & KEY_START){
+    if (k & KEY_START) {
         event->type = NSFB_EVENT_CONTROL;
         event->value.controlcode = NSFB_CONTROL_QUIT;
         return true;

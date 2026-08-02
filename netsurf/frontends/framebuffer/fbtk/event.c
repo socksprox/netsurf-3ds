@@ -72,10 +72,27 @@ fbtk_click(fbtk_widget_t *widget, nsfb_event_t *event)
 
 	nsfb_cursor_loc_get(root->u.root.fb, &cloc);
 
-	clicked = fbtk_get_widget_at(root, cloc.x0, cloc.y0);
-
-	if (clicked == NULL)
+	if (event->type == NSFB_EVENT_KEY_DOWN) {
+		clicked = fbtk_get_widget_at(root, cloc.x0, cloc.y0);
+		if (clicked == NULL) {
+			return;
+		}
+		root->u.root.press_target = clicked;
+	} else if (event->type == NSFB_EVENT_KEY_UP) {
+		if (root->u.root.grabbed != NULL) {
+			clicked = root->u.root.grabbed;
+		} else if (root->u.root.press_target != NULL) {
+			clicked = root->u.root.press_target;
+		} else {
+			clicked = fbtk_get_widget_at(root, cloc.x0, cloc.y0);
+			if (clicked == NULL) {
+				return;
+			}
+		}
+		root->u.root.press_target = NULL;
+	} else {
 		return;
+	}
 
 	if (fbtk_get_handler(clicked, FBTK_CBT_INPUT) != NULL) {
 		fbtk_set_focus(clicked);

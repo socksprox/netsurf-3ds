@@ -160,6 +160,7 @@ struct fbtk_widget_s {
 			nsfb_t *fb;
 			struct fbtk_widget_s *prev; /* previous widget pointer wasin */
 			struct fbtk_widget_s *grabbed; /* widget that has grabbed pointer movement. */
+			struct fbtk_widget_s *press_target; /* widget that received the press. */
 			struct fbtk_widget_s *input;
 
 			/* caret */
