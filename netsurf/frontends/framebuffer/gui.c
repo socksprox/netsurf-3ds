@@ -61,6 +61,9 @@
 #include "framebuffer/app_menu.h"
 #include "3ds.h"
 
+/* Real hardware defaults to a 32KB main-thread stack; NetSurf needs more. */
+u32 __stacksize__ = 128 * 1024;
+
 
 #define NSFB_TOOLBAR_DEFAULT_LAYOUT "blfsrutc"
 
@@ -204,10 +207,19 @@ fb_3ds_browser_geometry(struct gui_window *gw, int *x, int *y, int *w, int *h)
 	int page_y = FB_3DS_SCREEN_HEIGHT + url_h;
 	int chrome_top = fb_3ds_chrome_top_y(gw);
 
-	*x = fb_3ds_bottom_x(win_w);
-	*y = page_y;
-	*w = FB_3DS_BOTTOM_SCREEN_WIDTH;
-	*h = max(1, chrome_top - page_y);
+	/* Callers may ask for a subset of the geometry. */
+	if (x != NULL) {
+		*x = fb_3ds_bottom_x(win_w);
+	}
+	if (y != NULL) {
+		*y = page_y;
+	}
+	if (w != NULL) {
+		*w = FB_3DS_BOTTOM_SCREEN_WIDTH;
+	}
+	if (h != NULL) {
+		*h = max(1, chrome_top - page_y);
+	}
 }
 
 static void

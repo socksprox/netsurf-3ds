@@ -520,6 +520,95 @@ framebuffer_plot_text(const struct redraw_context *ctx,
 }
 #endif
 
+/**
+ * Plot text directly to a framebuffer surface.
+ *
+ * Bypasses the knockout plotter layer so UI overlays can render text safely
+ * while a page knockout session may be active.
+ */
+nserror
+fb_plot_text_direct(nsfb_t *target,
+		const struct plot_font_style *fstyle,
+		int x, int y,
+		const char *text, size_t length)
+{
+#ifdef FB_USE_FREETYPE
+	uint32_t ucs4;
+	size_t nxtchr = 0;
+	FT_Glyph glyph;
+	FT_BitmapGlyph bglyph;
+	nsfb_bbox_t loc;
+
+	while (nxtchr < length) {
+		ucs4 = utf8_to_ucs4(text + nxtchr, length - nxtchr);
+		nxtchr = utf8_next(text, length, nxtchr);
+
+		glyph = fb_getglyph(fstyle, ucs4);
+		if (glyph == NULL) {
+			continue;
+		}
+
+		if (glyph->format == FT_GLYPH_FORMAT_BITMAP) {
+			bglyph = (FT_BitmapGlyph)glyph;
+
+			loc.x0 = x + bglyph->left;
+			loc.y0 = y - bglyph->top;
+			loc.x1 = loc.x0 + bglyph->bitmap.width;
+			loc.y1 = loc.y0 + bglyph->bitmap.rows;
+
+			if (bglyph->bitmap.pixel_mode == FT_PIXEL_MODE_MONO) {
+				nsfb_plot_glyph1(target,
+						&loc,
+						bglyph->bitmap.buffer,
+						bglyph->bitmap.pitch,
+						fstyle->foreground);
+			} else {
+				nsfb_plot_glyph8(target,
+						&loc,
+						bglyph->bitmap.buffer,
+						bglyph->bitmap.pitch,
+						fstyle->foreground);
+			}
+		}
+		x += glyph->advance.x >> 16;
+	}
+#else
+	enum fb_font_style style = fb_get_font_style(fstyle);
+	int size = fb_get_font_size(fstyle);
+	const uint8_t *chrp;
+	size_t nxtchr = 0;
+	nsfb_bbox_t loc;
+	uint32_t ucs4;
+	int p = FB_FONT_PITCH * size;
+	int w = FB_FONT_WIDTH * size;
+	int h = FB_FONT_HEIGHT * size;
+
+	y -= ((h * 3) / 4);
+	y += 1;
+
+	while (nxtchr < length) {
+		ucs4 = utf8_to_ucs4(text + nxtchr, length - nxtchr);
+		nxtchr = utf8_next(text, length, nxtchr);
+
+		if (!codepoint_displayable(ucs4)) {
+			continue;
+		}
+
+		loc.x0 = x;
+		loc.y0 = y;
+		loc.x1 = loc.x0 + w;
+		loc.y1 = loc.y0 + h;
+
+		chrp = fb_get_glyph(ucs4, style, size);
+		nsfb_plot_glyph1(target, &loc, chrp, p, fstyle->foreground);
+
+		x += w;
+	}
+#endif
+
+	return NSERROR_OK;
+}
+
 
 /** framebuffer plot operation table */
 const struct plotter_table fb_plotters = {

@@ -24,12 +24,22 @@
 #ifndef NETSURF_FB_FRAMEBUFFER_H
 #define NETSURF_FB_FRAMEBUFFER_H
 
+#include "netsurf/plotters.h"
+
 extern const struct plotter_table fb_plotters;
 
 nsfb_t *framebuffer_initialise(const char *fename, int width, int height, int bpp);
 bool framebuffer_resize(nsfb_t *nsfb, int width, int height, int bpp);
 void framebuffer_finalise(void);
 bool framebuffer_set_cursor(struct fbtk_bitmap *bm);
+
+/**
+ * Plot text directly to a framebuffer surface, bypassing knockout.
+ */
+nserror fb_plot_text_direct(nsfb_t *target,
+		const struct plot_font_style *fstyle,
+		int x, int y,
+		const char *text, size_t length);
 
 /** Set framebuffer surface to render into
  *

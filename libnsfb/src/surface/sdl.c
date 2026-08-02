@@ -511,8 +511,6 @@ static u32 *SOC_buffer = NULL;
 #define SOC_ALIGN       0x1000
 #define SOC_BUFFERSIZE  0x100000
 
-void failExit(const char *fmt);
-
 void socShutdown(void);
 
 static int sdl_initialise(nsfb_t *nsfb)
@@ -547,25 +545,20 @@ static int sdl_initialise(nsfb_t *nsfb)
     }
 
     // initialize 3DS socket service
-	// from 3ds socket example:
-	// https://github.com/devkitPro/3ds-examples/blob/master/network/sockets/source/sockets.c#L70-L84
-	
-    int ret;
+    {
+        int ret;
 
-	// allocate buffer for SOC service
-	SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
+        SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
 
-	if(SOC_buffer == NULL) {
-        fprintf(stderr,"FAILED TO INIT 3DS SOCKET SERVICE!");
-	}
-
-	// Now intialise soc:u service
-	if (R_FAILED(ret = socInit(SOC_buffer, SOC_BUFFERSIZE))) {
-        fprintf(stderr,"FAILED TO INIT 3DS SOCKET SERVICE! socInit");
-	}
-
-	// register socShutdown to run at exit
-	atexit(socShutdown);
+        if (SOC_buffer == NULL) {
+            fprintf(stderr, "FAILED TO INIT 3DS SOCKET SERVICE!\n");
+        } else if (R_FAILED(ret = socInit(SOC_buffer, SOC_BUFFERSIZE))) {
+            fprintf(stderr, "FAILED TO INIT 3DS SOCKET SERVICE! socInit 0x%08x\n",
+                    (unsigned)ret);
+        } else {
+            atexit(socShutdown);
+        }
+    }
 
     /* find out what pixel format we got */
     sdl_fmt = sdl_screen->format;

@@ -516,11 +516,6 @@ fb_menu_plot_text(nsfb_t *nsfb, int x, int y, const char *text,
 		nsfb_colour_t colour)
 {
 	plot_font_style_t font_style;
-	struct redraw_context ctx = {
-		.interactive = true,
-		.background_images = true,
-		.plot = &fb_plotters,
-	};
 
 	if (text == NULL) {
 		return;
@@ -533,7 +528,7 @@ fb_menu_plot_text(nsfb_t *nsfb, int x, int y, const char *text,
 	font_style.background = 0;
 	font_style.foreground = colour;
 
-	ctx.plot->text(&ctx, &font_style, x, y, text, strlen(text));
+	fb_plot_text_direct(nsfb, &font_style, x, y, text, strlen(text));
 }
 
 static int
@@ -587,7 +582,6 @@ fb_app_menu_repaint_exposed_page(struct gui_window *gw)
 static void
 fb_app_menu_layout(struct gui_window *gw)
 {
-	fbtk_widget_t *parent = gw->window;
 	int page_x = fbtk_get_absx(gw->browser);
 	int page_y = fbtk_get_absy(gw->browser);
 	int page_w = fbtk_get_width(gw->browser);
@@ -642,6 +636,8 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 {
 	nsfb_t *nsfb = fbtk_get_nsfb(widget);
 	nsfb_bbox_t bbox;
+	nsfb_bbox_t prev_clip;
+	bool had_clip;
 	int panel_x0;
 	int panel_y0;
 	int panel_x1;
@@ -656,6 +652,7 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	(void)cbi;
 
 	fbtk_get_bbox(widget, &bbox);
+	had_clip = nsfb_plot_get_clip(nsfb, &prev_clip);
 	nsfb_claim(nsfb, &bbox);
 
 	panel_x0 = bbox.x0;
@@ -742,6 +739,10 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 
 	fb_menu_plot_pointer_border(nsfb, pointer_x, pointer_base_y,
 			FB_MENU_COLOUR_BORDER);
+
+	if (had_clip) {
+		nsfb_plot_set_clip(nsfb, &prev_clip);
+	}
 
 	nsfb_update(nsfb, &bbox);
 
