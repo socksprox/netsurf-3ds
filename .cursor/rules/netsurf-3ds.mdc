@@ -16,6 +16,8 @@ After **every** code change, run a build and fix any errors before continuing or
 From the repo root:
 
 ```bash
+export PKG_CONFIG_PATH="$(pwd)/inst-framebuffer/lib/pkgconfig:/opt/devkitpro/portlibs/3ds/lib/pkgconfig:${PKG_CONFIG_PATH}"
+export PATH="/opt/homebrew/opt/bison/bin:/opt/devkitpro/devkitARM/bin:/opt/devkitpro/tools/bin:${PATH}"
 make --directory=netsurf PREFIX="$(pwd)/inst-framebuffer" TARGET=framebuffer NOCIA=1 -j$(sysctl -n hw.ncpu 2>/dev/null || nproc) && cp netsurf/nsfb.3dsx nsfb.3dsx
 ```
 

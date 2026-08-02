@@ -517,9 +517,18 @@ fb_3ds_position_top_title(struct gui_window *gw, const char *title)
 #define FB_3DS_PINCH_STEP 0.015f
 #define FB_3DS_PINCH_INTERVAL_MS 80
 
+#define FB_3DS_SCROLL_INTERVAL_MS 16
+#define FB_3DS_DPAD_SCROLL_PX 10
+#define FB_3DS_STICK_SCROLL_MAX 14
+#define FB_3DS_STICK_DEADZONE 20
+
 static struct {
 	uint64_t last_apply_ms;
 } fb_3ds_zoom;
+
+static struct {
+	uint64_t last_apply_ms;
+} fb_3ds_pan;
 
 static float
 gui_window_minimum_zoom(struct gui_window *gw)
@@ -725,6 +734,75 @@ fb_3ds_poll_page_zoom(void)
 
 	gui_window_zoom_at_point(gw, delta);
 	nsu_getmonotonic_ms(&fb_3ds_zoom.last_apply_ms);
+}
+
+static void
+fb_3ds_poll_page_pan(void)
+{
+	struct gui_window *gw = window_list;
+	struct browser_widget_s *bwidget;
+	circlePosition stick;
+	u32 held;
+	int dx, dy;
+	uint64_t now;
+
+	if (gw == NULL || gw->browser == NULL || gw->bw == NULL ||
+			fb_local_history_is_shown() || fb_app_menu_is_shown()) {
+		return;
+	}
+
+	/* Do not scroll while the user is dragging the page. */
+	if (gui_drag.state != GUI_DRAG_NONE || touch_pan.panning) {
+		return;
+	}
+
+	bwidget = fb_get_bwidget(gw);
+	if (bwidget == NULL) {
+		return;
+	}
+
+	held = hidKeysHeld();
+	if ((held & (KEY_L | KEY_R | KEY_ZL | KEY_ZR)) != 0) {
+		return;
+	}
+
+	dx = 0;
+	dy = 0;
+
+	if (held & KEY_DLEFT) {
+		dx -= FB_3DS_DPAD_SCROLL_PX;
+	}
+	if (held & KEY_DRIGHT) {
+		dx += FB_3DS_DPAD_SCROLL_PX;
+	}
+	if (held & KEY_DUP) {
+		dy -= FB_3DS_DPAD_SCROLL_PX;
+	}
+	if (held & KEY_DDOWN) {
+		dy += FB_3DS_DPAD_SCROLL_PX;
+	}
+
+	hidCircleRead(&stick);
+	if (stick.dx < -FB_3DS_STICK_DEADZONE ||
+			stick.dx > FB_3DS_STICK_DEADZONE) {
+		dx += (stick.dx * FB_3DS_STICK_SCROLL_MAX) / 160;
+	}
+	if (stick.dy < -FB_3DS_STICK_DEADZONE ||
+			stick.dy > FB_3DS_STICK_DEADZONE) {
+		dy -= (stick.dy * FB_3DS_STICK_SCROLL_MAX) / 160;
+	}
+
+	if (dx == 0 && dy == 0) {
+		return;
+	}
+
+	nsu_getmonotonic_ms(&now);
+	if (now < fb_3ds_pan.last_apply_ms + FB_3DS_SCROLL_INTERVAL_MS) {
+		return;
+	}
+
+	widget_set_scroll(gw, bwidget->scrollx + dx, bwidget->scrolly + dy);
+	nsu_getmonotonic_ms(&fb_3ds_pan.last_apply_ms);
 }
 #endif
 
@@ -1649,6 +1727,7 @@ static void framebuffer_run(void)
 
 #ifdef __3DS__
 		fb_3ds_poll_page_zoom();
+		fb_3ds_poll_page_pan();
 #endif
 
 		fbtk_redraw(fbtk);

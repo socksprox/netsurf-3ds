@@ -209,8 +209,8 @@ build/Darwin-framebuffer/utils_utils.o
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/../../../../arm-none-eabi/lib/armv6k/fpu/libm.a
 /opt/devkitpro/portlibs/3ds/lib/libfreetype.a
 /opt/devkitpro/portlibs/3ds/lib/libbz2.a
-/opt/devkitpro/portlibs/3ds/lib/libpng16.a
 /opt/devkitpro/portlibs/3ds/lib/libz.a
+/opt/devkitpro/portlibs/3ds/lib/libpng16.a
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsfb.a
 /opt/devkitpro/portlibs/3ds/lib/libSDL.a
 /opt/devkitpro/libctru/lib/libcitro3d.a
