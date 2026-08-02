@@ -1,10 +1,28 @@
-# local clangd configuration files
+# Local IDE / tooling
 compile_commands.json
-
-
 .cache/
 
-# experimental CIA builds (not currently supported)
-netsurf/nsfb.cfa 
+# Install prefix produced by `make build`
+inst-*/
+
+# Per-component build trees (netsurf-buildsystem BUILDDIR)
+*/build-*/
+
+# NetSurf build output
+netsurf/build/
+
+# Homebrew / 3DS binaries
+nsfb.3dsx
+netsurf/nsfb
+netsurf/nsfb.3dsx
+
+# Experimental CIA builds (not currently supported)
+netsurf/nsfb.cfa
 netsurf/nsfb.cia
-netsurf/nsfb.cxi 
+netsurf/nsfb.cxi
+
+# macOS debug symbols from host build tools
+*.dSYM/
+
+# macOS
+.DS_Store
