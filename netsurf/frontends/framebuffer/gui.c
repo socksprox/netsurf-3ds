@@ -71,6 +71,17 @@
 #define FB_3DS_TITLE_BOTTOM_MARGIN 16
 #define FB_3DS_TITLE_COLOUR 0xFF666666
 #define px_to_pt(x) (((x) * 72) / FBTK_DPI)
+
+/** Action bar contents, bottom of the lower screen. No url entry here. */
+#define FB_3DS_ACTIONBAR_LAYOUT "blfsrtc"
+#define FB_3DS_ACTION_MAX 8
+
+/** Url bar, top of the lower screen. */
+#define FB_3DS_URLBAR_HEIGHT 26
+#define FB_3DS_URLBAR_PADDING 2
+
+/** Touch travel needed to reveal or dismiss the url bar. */
+#define FB_3DS_URLBAR_GESTURE_PX 32
 #endif
 
 fbtk_widget_t *fbtk;
@@ -106,6 +117,8 @@ static bool fb_history_dismiss_touch;
 
 #ifdef __3DS__
 static void widget_set_scroll(struct gui_window *gw, int sx, int sy);
+static void fb_3ds_layout_screens(struct gui_window *gw);
+static void fb_3ds_set_urlbar_shown(struct gui_window *gw, bool show);
 
 static struct browser_widget_s *
 fb_get_bwidget(struct gui_window *gw)
@@ -173,6 +186,18 @@ fb_3ds_update_top_title_visibility(struct gui_window *gw, int scrolly)
 
 	gw->top_title_shown = show;
 	fbtk_set_mapping(gw->top_title_label, show);
+}
+
+/**
+ * The url bar only ever belongs to an unscrolled page; once the document
+ * spills onto the top screen there is no room for it.
+ */
+static void
+fb_3ds_update_urlbar_visibility(struct gui_window *gw, int scrolly)
+{
+	if (scrolly != 0) {
+		fb_3ds_set_urlbar_shown(gw, false);
+	}
 }
 
 static void
@@ -345,6 +370,33 @@ static struct {
 	int start_screen_y;
 	bool panning;
 } touch_pan;
+
+/**
+ * Reveal or dismiss the url bar from a vertical touch drag.
+ *
+ * The drag has to both begin and remain at the top of the document, so a
+ * flick that merely scrolls back to the top does not bring the bar out; that
+ * takes a further swipe.
+ *
+ * \param gw The window being dragged in.
+ * \param dy Touch travel in pixels since the drag started, positive downwards.
+ */
+static void
+fb_3ds_urlbar_gesture(struct gui_window *gw, int dy)
+{
+	struct browser_widget_s *bwidget = fb_get_bwidget(gw);
+
+	if (bwidget == NULL || bwidget->scrolly != 0 ||
+			touch_pan.start_scrolly != 0) {
+		return;
+	}
+
+	if (dy >= FB_3DS_URLBAR_GESTURE_PX) {
+		fb_3ds_set_urlbar_shown(gw, true);
+	} else if (dy <= -FB_3DS_URLBAR_GESTURE_PX) {
+		fb_3ds_set_urlbar_shown(gw, false);
+	}
+}
 
 static void
 fb_3ds_poll_page_zoom(void)
@@ -624,6 +676,7 @@ widget_set_scroll(struct gui_window *gw, int sx, int sy)
 	bwidget->pany = 0;
 	bwidget->pan_required = false;
 	fb_3ds_update_top_title_visibility(gw, sy);
+	fb_3ds_update_urlbar_visibility(gw, sy);
 	fb_browser_request_redraw(gw);
 }
 #endif
@@ -894,6 +947,7 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		bwidget->pany = 0;
 		bwidget->pan_required = false;
 		fb_3ds_update_top_title_visibility(gw, bwidget->scrolly);
+		fb_3ds_update_urlbar_visibility(gw, bwidget->scrolly);
 #else
 		fb_pan(widget, bwidget, gw->bw);
 #endif
@@ -1381,6 +1435,7 @@ fb_browser_window_move(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		}
 
 		if (touch_pan.panning) {
+			fb_3ds_urlbar_gesture(gw, dy);
 			widget_set_scroll(gw,
 					touch_pan.start_scrollx - dx,
 					touch_pan.start_scrolly - dy);
@@ -1743,7 +1798,7 @@ fb_scroll_callback(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 static int
 fb_url_enter(void *pw, char *text)
 {
-	struct browser_window *bw = pw;
+	struct gui_window *gw = pw;
 	nsurl *url;
 	nserror error;
 
@@ -1751,10 +1806,14 @@ fb_url_enter(void *pw, char *text)
 	if (error != NSERROR_OK) {
 		fb_warn_user("Errorcode:", messages_get_errorcode(error));
 	} else {
-		browser_window_navigate(bw, url, NULL, BW_NAVIGATE_HISTORY,
+		browser_window_navigate(gw->bw, url, NULL, BW_NAVIGATE_HISTORY,
 				NULL, NULL, NULL);
 		nsurl_unref(url);
 	}
+
+#ifdef __3DS__
+	fb_3ds_set_urlbar_shown(gw, false);
+#endif
 
 	return 0;
 }
@@ -1787,6 +1846,7 @@ fb_localhistory_btn_clik(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 }
 
 
+#ifndef __3DS__
 /** Create a toolbar window and populate it with buttons. 
  *
  * The toolbar layout uses a character to define buttons type and position:
@@ -1981,7 +2041,7 @@ create_toolbar(struct gui_window *gw,
 						   FB_COLOUR_BLACK,
 						   true,
 						   fb_url_enter,
-						   gw->bw);
+						   gw);
 
 				fbtk_set_handler(widget, 
 						 FBTK_CBT_POINTERENTER, 
@@ -2175,6 +2235,286 @@ resize_toolbar(struct gui_window *gw,
 		itmtype += xdir;
 	}
 }
+#endif
+
+#ifdef __3DS__
+
+/** One button of the 3DS action bar. */
+struct fb_3ds_action_item {
+	struct fbtk_bitmap *image;
+	fbtk_callback click; /**< NULL for a passive indicator. */
+	void *pw;
+	fbtk_widget_t **slot; /**< Where the window keeps the widget. */
+};
+
+/**
+ * Expand an action bar layout string into the items it names.
+ *
+ * Uses the same letters as the desktop toolbar layout except that the url
+ * entry ('u') is not part of the action bar and is skipped.
+ *
+ * \param gw The window the actions belong to.
+ * \param layout Layout string or NULL for the default.
+ * \param items Array of at least FB_3DS_ACTION_MAX items to fill in.
+ * \return The number of items filled in.
+ */
+static int
+fb_3ds_collect_actions(struct gui_window *gw, const char *layout,
+		struct fb_3ds_action_item *items)
+{
+	int count = 0;
+
+	if (layout == NULL) {
+		layout = FB_3DS_ACTIONBAR_LAYOUT;
+	}
+
+	for (; (*layout != 0) && (count < FB_3DS_ACTION_MAX); layout++) {
+		struct fb_3ds_action_item *item = items + count;
+
+		item->click = NULL;
+		item->pw = NULL;
+
+		switch (*layout) {
+		case 'b': /* back */
+			item->image = &left_arrow;
+			item->click = fb_leftarrow_click;
+			item->pw = gw;
+			item->slot = &gw->back;
+			break;
+
+		case 'l': /* local history */
+			item->image = &history_image;
+			item->click = fb_localhistory_btn_clik;
+			item->pw = gw;
+			item->slot = &gw->history;
+			break;
+
+		case 'f': /* forward */
+			item->image = &right_arrow;
+			item->click = fb_rightarrow_click;
+			item->pw = gw;
+			item->slot = &gw->forward;
+			break;
+
+		case 's': /* stop */
+			item->image = &stop_image;
+			item->click = fb_stop_click;
+			item->pw = gw->bw;
+			item->slot = &gw->stop;
+			break;
+
+		case 'r': /* reload */
+			item->image = &reload;
+			item->click = fb_reload_click;
+			item->pw = gw->bw;
+			item->slot = &gw->reload;
+			break;
+
+		case 't': /* throbber/activity indicator */
+			item->image = &throbber0;
+			item->slot = &gw->throbber;
+			break;
+
+		case 'c': /* close the current window */
+			item->image = &stop_image_g;
+			item->click = fb_close_click;
+			item->pw = gw->bw;
+			item->slot = &gw->close;
+			break;
+
+		default:
+			NSLOG(netsurf, INFO,
+			      "Skipping element %c in action bar layout",
+			      *layout);
+			continue;
+		}
+
+		count++;
+	}
+
+	return count;
+}
+
+/**
+ * Spread the action bar items evenly across the bar.
+ *
+ * \param gw The window owning the action bar.
+ * \param items The items to place.
+ * \param count Number of items.
+ * \param create Create the widgets rather than repositioning them.
+ */
+static void
+fb_3ds_place_actions(struct gui_window *gw, struct fb_3ds_action_item *items,
+		int count, bool create)
+{
+	int bar_w = fbtk_get_width(gw->toolbar);
+	int bar_h = fbtk_get_height(gw->toolbar);
+	int i;
+
+	for (i = 0; i < count; i++) {
+		struct fbtk_bitmap *image = items[i].image;
+		int slot_x = (bar_w * i) / count;
+		int slot_w = ((bar_w * (i + 1)) / count) - slot_x;
+		int x = slot_x + max(0, (slot_w - image->width) / 2);
+		int y = max(0, (bar_h - image->height) / 2);
+
+		if (!create) {
+			fbtk_set_pos_and_size(*items[i].slot, x, y,
+					image->width, image->height);
+			continue;
+		}
+
+		if (items[i].click == NULL) {
+			*items[i].slot = fbtk_create_bitmap(gw->toolbar,
+					x, y,
+					image->width, image->height,
+					FB_FRAME_COLOUR, image);
+		} else {
+			*items[i].slot = fbtk_create_button(gw->toolbar,
+					x, y,
+					image->width, image->height,
+					FB_FRAME_COLOUR, image,
+					items[i].click, items[i].pw);
+		}
+	}
+}
+
+/**
+ * Create the action bar along the bottom edge of the lower screen.
+ *
+ * \param gw The window to attach the bar to.
+ * \param bar_height Height of the bar in pixels.
+ * \param layout Layout string or NULL for the default.
+ */
+static void
+create_3ds_action_bar(struct gui_window *gw, int bar_height,
+		const char *layout)
+{
+	struct fb_3ds_action_item items[FB_3DS_ACTION_MAX];
+	int count;
+
+	if ((layout != NULL) && ((*layout == 0) || (*layout == 'q'))) {
+		gw->toolbar = NULL;
+		return;
+	}
+
+	gw->toolbar = fbtk_create_window(gw->window, 0, 0, 0, bar_height,
+					 FB_FRAME_COLOUR);
+	if (gw->toolbar == NULL) {
+		return;
+	}
+
+	fbtk_set_handler(gw->toolbar, FBTK_CBT_POINTERENTER,
+			 set_ptr_default_move, NULL);
+
+	count = fb_3ds_collect_actions(gw, layout, items);
+	fb_3ds_place_actions(gw, items, count, true);
+
+	fbtk_set_mapping(gw->toolbar, true);
+}
+
+/**
+ * Create the url bar which sits above the page on the lower screen.
+ *
+ * The bar starts out hidden; it is revealed by a downwards swipe on an
+ * unscrolled page.
+ */
+static void
+create_3ds_urlbar(struct gui_window *gw)
+{
+	gw->urlbar = fbtk_create_window(gw->window, 0, FB_3DS_SCREEN_HEIGHT,
+					0, FB_3DS_URLBAR_HEIGHT,
+					FB_FRAME_COLOUR);
+	if (gw->urlbar == NULL) {
+		return;
+	}
+
+	fbtk_set_handler(gw->urlbar, FBTK_CBT_POINTERENTER,
+			 set_ptr_default_move, NULL);
+
+	gw->url = fbtk_create_writable_text(gw->urlbar,
+					    FB_3DS_URLBAR_PADDING,
+					    FB_3DS_URLBAR_PADDING,
+					    -FB_3DS_URLBAR_PADDING,
+					    -FB_3DS_URLBAR_PADDING,
+					    FB_COLOUR_WHITE,
+					    FB_COLOUR_BLACK,
+					    true,
+					    fb_url_enter,
+					    gw);
+
+	fbtk_set_handler(gw->url, FBTK_CBT_POINTERENTER, fb_url_move, gw->bw);
+
+	gw->urlbar_shown = false;
+	fbtk_set_mapping(gw->urlbar, false);
+}
+
+/**
+ * Lay out both screens.
+ *
+ * The top screen is one browser pane. The lower screen is, top to bottom,
+ * the optional url bar, the rest of the page, the action bar and the status
+ * bar.
+ */
+static void
+fb_3ds_layout_screens(struct gui_window *gw)
+{
+	int furniture_width = nsoption_int(fb_furniture_size);
+	int win_w = fbtk_get_width(gw->window);
+	int win_h = fbtk_get_height(gw->window);
+	int bar_h = (gw->toolbar != NULL) ? fbtk_get_height(gw->toolbar) : 0;
+	int url_h = gw->urlbar_shown ? FB_3DS_URLBAR_HEIGHT : 0;
+	int page_y = FB_3DS_SCREEN_HEIGHT + url_h;
+	int page_h = max(1, win_h - furniture_width - bar_h - page_y);
+
+	fbtk_set_pos_and_size(gw->browser_top, 0, 0,
+			      win_w, FB_3DS_SCREEN_HEIGHT);
+
+	if (gw->urlbar != NULL) {
+		fbtk_set_pos_and_size(gw->urlbar, 0, FB_3DS_SCREEN_HEIGHT,
+				      win_w, FB_3DS_URLBAR_HEIGHT);
+		fbtk_set_pos_and_size(gw->url,
+				      FB_3DS_URLBAR_PADDING,
+				      FB_3DS_URLBAR_PADDING,
+				      -FB_3DS_URLBAR_PADDING,
+				      -FB_3DS_URLBAR_PADDING);
+	}
+
+	fbtk_set_pos_and_size(gw->browser, 0, page_y, win_w, page_h);
+
+	if (gw->toolbar != NULL) {
+		fbtk_set_pos_and_size(gw->toolbar, 0,
+				      win_h - furniture_width - bar_h,
+				      win_w, bar_h);
+	}
+
+	fbtk_set_pos_and_size(gw->status, 0, win_h - furniture_width,
+			      win_w, furniture_width);
+
+	if (gw->top_title_label != NULL) {
+		fb_3ds_position_top_title(gw, browser_window_get_title(gw->bw));
+	}
+}
+
+static void
+fb_3ds_set_urlbar_shown(struct gui_window *gw, bool show)
+{
+	if ((gw->urlbar == NULL) || (gw->urlbar_shown == show)) {
+		return;
+	}
+
+	gw->urlbar_shown = show;
+	fbtk_set_mapping(gw->urlbar, show);
+
+	if (!show) {
+		/* drops the text caret along with the focus */
+		fbtk_set_focus(gw->browser);
+	}
+
+	fb_3ds_layout_screens(gw);
+	fb_browser_request_redraw(gw);
+}
+#endif
 
 /** Routine called when "stripped of focus" event occours for browser widget.
  *
@@ -2225,12 +2565,10 @@ create_browser_widget(struct gui_window *gw, int browser_y, int furniture_width)
 
 #ifdef __3DS__
 static void
-create_3ds_browser_panes(struct gui_window *gw, int toolbar_height,
-		int furniture_width)
+create_3ds_browser_panes(struct gui_window *gw)
 {
 	struct browser_widget_s *browser_widget;
 	int win_h = fbtk_get_height(gw->window);
-	int bottom_y = FB_3DS_SCREEN_HEIGHT + toolbar_height;
 
 	browser_widget = calloc(1, sizeof(struct browser_widget_s));
 
@@ -2242,9 +2580,9 @@ create_3ds_browser_panes(struct gui_window *gw, int toolbar_height,
 					    browser_widget);
 	gw->browser = fbtk_create_user(gw->window,
 				       0,
-				       bottom_y,
+				       FB_3DS_SCREEN_HEIGHT,
 				       0,
-				       -furniture_width,
+				       0,
 				       browser_widget);
 
 	fb_set_browser_pane_handlers(gw, gw->browser_top, false);
@@ -2272,34 +2610,13 @@ resize_browser_widget(struct gui_window *gw, int x, int y,
 	browser_window_schedule_reformat(gw->bw);
 }
 
-#ifdef __3DS__
-static void
-resize_3ds_browser_panes(struct gui_window *gw, int toolbar_height,
-		int furniture_width)
-{
-	int win_h = fbtk_get_height(gw->window);
-	int bottom_y = FB_3DS_SCREEN_HEIGHT + toolbar_height;
-
-	fbtk_set_pos_and_size(gw->browser_top,
-			      0, 0,
-			      fbtk_get_width(gw->window),
-			      FB_3DS_SCREEN_HEIGHT);
-	fbtk_set_pos_and_size(gw->browser,
-			      0, bottom_y,
-			      fbtk_get_width(gw->window),
-			      win_h - bottom_y - furniture_width);
-	if (gw->top_title_label != NULL) {
-		fb_3ds_position_top_title(gw, browser_window_get_title(gw->bw));
-	}
-	browser_window_schedule_reformat(gw->bw);
-}
-#endif
-
 static void
 create_normal_browser_window(struct gui_window *gw, int furniture_width)
 {
+#ifndef __3DS__
 	fbtk_widget_t *widget;
 	fbtk_widget_t *toolbar;
+#endif
 	int statusbar_width = 0;
 	int toolbar_height = nsoption_int(fb_toolbar_size);
 
@@ -2310,6 +2627,12 @@ create_normal_browser_window(struct gui_window *gw, int furniture_width)
 	statusbar_width = nsoption_int(toolbar_status_size) *
 		fbtk_get_width(gw->window) / 10000;
 
+#ifdef __3DS__
+	create_3ds_action_bar(gw, toolbar_height,
+			      nsoption_charp(fb_toolbar_layout));
+	create_3ds_urlbar(gw);
+	create_3ds_browser_panes(gw);
+#else
 	/* toolbar */
 	toolbar = create_toolbar(gw, 
 				 toolbar_height, 
@@ -2321,16 +2644,9 @@ create_normal_browser_window(struct gui_window *gw, int furniture_width)
 	/* set the actually created toolbar height */
 	if (toolbar != NULL) {
 		toolbar_height = fbtk_get_height(toolbar);
-#ifdef __3DS__
-		fbtk_set_pos_and_size(toolbar, 0, FB_3DS_SCREEN_HEIGHT, 0,
-				      toolbar_height);
-#endif
 	} else {
 		toolbar_height = 0;
 	}
-
-#ifdef __3DS__
-	create_3ds_browser_panes(gw, toolbar_height, furniture_width);
 #endif
 
 	/* status bar */
@@ -2411,7 +2727,9 @@ create_normal_browser_window(struct gui_window *gw, int furniture_width)
 	gw->bottom_right = NULL;
 #endif
 
-#ifndef __3DS__
+#ifdef __3DS__
+	fb_3ds_layout_screens(gw);
+#else
 	/* browser widget */
 	create_browser_widget(gw, toolbar_height, furniture_width);
 #endif
@@ -2424,36 +2742,42 @@ static void
 resize_normal_browser_window(struct gui_window *gw, int furniture_width)
 {
 	bool resized;
+#ifdef __3DS__
+	struct fb_3ds_action_item items[FB_3DS_ACTION_MAX];
+	int count;
+#else
 	int width, height;
 	int statusbar_width;
-	int toolbar_height = fbtk_get_height(gw->toolbar);
+	int toolbar_height = (gw->toolbar != NULL) ?
+			fbtk_get_height(gw->toolbar) : 0;
+#endif
 
 	/* Resize the main window widget */
 	resized = fbtk_set_pos_and_size(gw->window, 0, 0, 0, 0);
 	if (!resized)
 		return;
 
+#ifdef __3DS__
+	fb_3ds_layout_screens(gw);
+
+	if (gw->toolbar != NULL) {
+		count = fb_3ds_collect_actions(gw,
+				nsoption_charp(fb_toolbar_layout), items);
+		fb_3ds_place_actions(gw, items, count, false);
+	}
+
+	browser_window_schedule_reformat(gw->bw);
+#else
 	width = fbtk_get_width(gw->window);
 	height = fbtk_get_height(gw->window);
 	statusbar_width = nsoption_int(toolbar_status_size) * width / 10000;
 
 	resize_toolbar(gw, toolbar_height, 2,
 			nsoption_charp(fb_toolbar_layout));
-#ifdef __3DS__
-	if (gw->toolbar != NULL) {
-		fbtk_set_pos_and_size(gw->toolbar, 0, FB_3DS_SCREEN_HEIGHT, 0,
-				      toolbar_height);
-	}
-#endif
 	fbtk_set_pos_and_size(gw->status,
 			0, height - furniture_width,
-#ifdef __3DS__
-			width,
-#else
 			statusbar_width,
-#endif
 			furniture_width);
-#ifndef __3DS__
 	fbtk_reposition_hscroll(gw->hscroll,
 			statusbar_width, height - furniture_width,
 			width - statusbar_width - furniture_width,
@@ -2469,8 +2793,6 @@ resize_normal_browser_window(struct gui_window *gw, int furniture_width)
 			0, toolbar_height,
 			width - furniture_width,
 			height - furniture_width - toolbar_height);
-#else
-	resize_3ds_browser_panes(gw, toolbar_height, furniture_width);
 #endif
 }
 

@@ -245,8 +245,10 @@ nserror fb_local_history_present(struct gui_window *gw,
 {
 	nserror res;
 	fbtk_widget_t *parent = gw->window;
+#ifndef __3DS__
 	int furniture_width = nsoption_int(fb_furniture_size);
 	int toolbar_height = 0;
+#endif
 	int pos_x;
 	int pos_y;
 	int width;
@@ -256,9 +258,11 @@ nserror fb_local_history_present(struct gui_window *gw,
 		return fb_local_history_hide_internal(gw);
 	}
 
+#ifndef __3DS__
 	if (gw->toolbar != NULL) {
 		toolbar_height = fbtk_get_height(gw->toolbar);
 	}
+#endif
 
 	if (local_history_window != NULL &&
 	    local_history_parent != parent) {
@@ -273,14 +277,17 @@ nserror fb_local_history_present(struct gui_window *gw,
 	local_history_parent = parent;
 	local_history_gw = gw;
 
+#ifdef __3DS__
+	/* Exactly cover the lower screen page area. The parent window is at
+	 * the framebuffer origin, so the pane's absolute position is also its
+	 * position within the parent. */
+	pos_x = fbtk_get_absx(gw->browser);
+	pos_y = fbtk_get_absy(gw->browser);
+	width = fbtk_get_width(gw->browser);
+	height = fbtk_get_height(gw->browser);
+#else
 	pos_x = 0;
 	width = fbtk_get_width(parent);
-
-#ifdef __3DS__
-	/* Bottom screen only: below toolbar, above status bar. */
-	pos_y = FB_3DS_SCREEN_HEIGHT + toolbar_height;
-	height = fbtk_get_height(parent) - pos_y - furniture_width;
-#else
 	pos_y = toolbar_height;
 	height = fbtk_get_height(parent) - toolbar_height - furniture_width;
 #endif

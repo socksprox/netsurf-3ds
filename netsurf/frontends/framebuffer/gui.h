@@ -50,6 +50,9 @@ struct gui_window {
 	struct fbtk_widget_s *browser_top;
 	struct fbtk_widget_s *top_title_label;
 	bool top_title_shown;
+	/** Container holding the url entry above the page. */
+	struct fbtk_widget_s *urlbar;
+	bool urlbar_shown;
 #endif
 	struct fbtk_widget_s *toolbar;
 	struct fbtk_widget_s *bottom_right;
