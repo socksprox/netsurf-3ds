@@ -1,31 +1,31 @@
-nsfb build/Darwin-framebuffer/deps/link.d: /opt/devkitpro/portlibs/3ds/lib/libpng16.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libparserutils.a	\
-	/opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/libgcc.a	\
-	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libm.a	\
+nsfb build/Darwin-framebuffer/deps/link.d: /opt/devkitpro/portlibs/3ds/lib/libmbedtls.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libfreetype.a	\
+	/opt/devkitpro/libctru/lib/libctru.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libwapcaplet.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libz.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libcurl.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsutils.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsfb.a	\
 	/opt/devkitpro/portlibs/3ds/lib/libSDL.a	\
 	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libhubbub.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnspsl.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libmbedcrypto.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libcss.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libmbedtls.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libbz2.a	\
-	/opt/devkitpro/libctru/lib/libctru.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libz.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsutils.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/librosprite.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsgif.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libfreetype.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libdom.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnslog.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsbmp.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsfb.a	\
-	/opt/devkitpro/libctru/lib/libcitro3d.a	\
 	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libutf8proc.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libjpeg.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsbmp.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libdom.a	\
 	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libc.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libmbedx509.a	\
-	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libwapcaplet.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libcurl.a	\
-	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libsysbase.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libparserutils.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libjpeg.a	\
 	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libpthread.a	\
-	/opt/devkitpro/portlibs/3ds/lib/libiconv.a
+	/opt/devkitpro/portlibs/3ds/lib/libmbedcrypto.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libmbedx509.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libpng16.a	\
+	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libm.a	\
+	/opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/libgcc.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnslog.a	\
+	/opt/devkitpro/devkitARM/arm-none-eabi/lib/armv6k/fpu/libsysbase.a	\
+	/opt/devkitpro/libctru/lib/libcitro3d.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/librosprite.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnspsl.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libiconv.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libcss.a	\
+	/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsgif.a	\
+	/opt/devkitpro/portlibs/3ds/lib/libbz2.a

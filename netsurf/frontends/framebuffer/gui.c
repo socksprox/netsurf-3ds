@@ -76,7 +76,7 @@
 #define px_to_pt(x) (((x) * 72) / FBTK_DPI)
 
 /** Action bar contents, bottom of the lower screen. No url entry or reload here. */
-#define FB_3DS_ACTIONBAR_LAYOUT "mblfstc"
+#define FB_3DS_ACTIONBAR_LAYOUT "blfstcm"
 #define FB_3DS_ACTION_MAX 8
 
 /** Url bar, top of the lower screen. */
