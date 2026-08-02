@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "3ds/svc.h"
 #include <assert.h>
 
 #include <unistd.h>
@@ -137,6 +136,8 @@ fb_new_face(const char *option, const char *resname, const char *fontname)
 
         if (option != NULL) {
                 newf->fontfile = strdup(option);
+        } else if (filepath_sfind(respaths, buf, resname) != NULL) {
+                newf->fontfile = strdup(buf);
         } else {
 		filepath_sfind(respaths, buf, fontname);
                 newf->fontfile = strdup(buf);
@@ -161,7 +162,7 @@ bool fb_font_init(void)
 {
         FT_Error error;
         FT_ULong max_cache_size;
-        FT_UInt max_faces = 6;
+        FT_UInt max_faces = FB_FACE_COUNT;
 	fb_faceid_t *fb_face;
 
         /* freetype library initialise */
@@ -321,8 +322,6 @@ bool fb_font_init(void)
                 ft_load_type = FT_LOAD_MONOCHROME; /* faster but less pretty */
         else
                 ft_load_type = 0;
-        
-        svcSleepThread(1000);
 
         return true;
 }
@@ -360,6 +359,7 @@ bool fb_font_finalise(void)
 static void fb_fill_scalar(const plot_font_style_t *fstyle, FTC_Scaler srec)
 {
         int selected_face = FB_FACE_DEFAULT;
+	int dpi = browser_get_dpi();
 
 	switch (fstyle->family) {
                                 
@@ -407,10 +407,19 @@ static void fb_fill_scalar(const plot_font_style_t *fstyle, FTC_Scaler srec)
 
         srec->face_id = (FTC_FaceID)fb_faces[selected_face];
 
+#ifdef __3DS__
+	/* Point-based scaler lookup is unreliable on 3DS; use pixels. */
+	srec->width = srec->height = (fstyle->size * dpi +
+			(PLOT_STYLE_SCALE * 36)) / (PLOT_STYLE_SCALE * 72);
+	if (srec->width < 1)
+		srec->width = srec->height = 1;
+	srec->pixel = 1;
+#else
 	srec->width = srec->height = (fstyle->size * 64) / PLOT_STYLE_SCALE;
 	srec->pixel = 0;
+#endif
 
-	srec->x_res = srec->y_res = browser_get_dpi();
+	srec->x_res = srec->y_res = dpi;
 }
 
 /* exported interface documented in framebuffer/freetype_font.h */
@@ -420,8 +429,7 @@ FT_Glyph fb_getglyph(const plot_font_style_t *fstyle, uint32_t ucs4)
         FTC_ScalerRec srec;
         FT_Glyph glyph;
         FT_Error error;
-        fb_faceid_t *fb_face; 
-        FTC_ImageTypeRec trec; 
+        fb_faceid_t *fb_face;
 
         fb_fill_scalar(fstyle, &srec);
 
@@ -429,33 +437,33 @@ FT_Glyph fb_getglyph(const plot_font_style_t *fstyle, uint32_t ucs4)
 
         glyph_index = FTC_CMapCache_Lookup(ft_cmap_cache, srec.face_id,
 			fb_face->cidx, ucs4);
-        
-        // 3DS has problem here...
-        error = FTC_ImageCache_LookupScaler(ft_image_cache, 
-                                            &srec, 
-                                            FT_LOAD_RENDER | 
-                                            FT_LOAD_FORCE_AUTOHINT | 
-                                            ft_load_type, 
-                                            glyph_index, 
-                                            &glyph, 
+
+        error = FTC_ImageCache_LookupScaler(ft_image_cache,
+                                            &srec,
+                                            FT_LOAD_RENDER |
+                                            FT_LOAD_FORCE_AUTOHINT |
+                                            ft_load_type,
+                                            glyph_index,
+                                            &glyph,
                                             NULL);
 
-	// trec.face_id = srec.face_id;
-	// if (srec.pixel) {
-	// 	trec.width = srec.width;
-	// 	trec.height = srec.height;
-	// } else {
-	// 	/* Convert from 1/64 pts to pixels */
-	// 	trec.width = srec.width * nscss_screen_dpi / 64 / srec.x_res;
-	// 	trec.height = srec.height * nscss_screen_dpi / 64 / srec.y_res;
-	// }
-	// trec.flags = FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT | ft_load_type;
+#ifdef __3DS__
+	/* Fallback if scaler lookup fails on 3DS. */
+	if (error != 0) {
+		FTC_ImageTypeRec trec;
 
-	// error = FTC_ImageCache_Lookup(ft_image_cache,
-	// 			      &trec,
-	// 			      glyph_index,
-	// 			      &glyph,
-	// 			      NULL);
+		trec.face_id = srec.face_id;
+		trec.width = srec.width;
+		trec.height = srec.height;
+		trec.flags = FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT | ft_load_type;
+
+		error = FTC_ImageCache_Lookup(ft_image_cache,
+					    &trec,
+					    glyph_index,
+					    &glyph,
+					    NULL);
+	}
+#endif
 
 	if (error != 0)
 		return NULL;

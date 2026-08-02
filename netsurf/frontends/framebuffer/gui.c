@@ -36,6 +36,7 @@
 #include "utils/log.h"
 #include "utils/messages.h"
 #include "netsurf/browser_window.h"
+#include "netsurf/browser.h"
 #include "netsurf/keypress.h"
 #include "desktop/browser_history.h"
 #include "netsurf/plotters.h"
@@ -2741,6 +2742,11 @@ main(int argc, char** argv)
 	nsoption_read(options, nsoptions);
 	free(options);
 	nsoption_commandline(&argc, argv, nsoptions);
+
+#ifdef __3DS__
+	/* Top screen is ~96 DPI; needed for correct CSS font sizing. */
+	browser_set_dpi(96);
+#endif
 
 	/* message init */
 	messages = filepath_find(respaths, "Messages");

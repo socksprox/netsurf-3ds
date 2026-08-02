@@ -45,7 +45,7 @@ NSOPTION_BOOL(fb_osk, false)
 /***** font options *****/
 
 /** render all fonts monochrome */
-NSOPTION_BOOL(fb_font_monochrome, true)
+NSOPTION_BOOL(fb_font_monochrome, false)
 /** size of font glyph cache in kilobytes. */
 NSOPTION_INTEGER(fb_font_cachesize, 2048)
 // 2048

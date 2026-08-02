@@ -1,7 +1,6 @@
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/../../../../arm-none-eabi/lib/armv6k/fpu/3dsx_crt0.o
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/crti.o
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/armv6k/fpu/crtbegin.o
-build/Darwin-framebuffer/build_Darwin-framebuffer_font-ns-sans.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-caret_image.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-hand_image.o
 build/Darwin-framebuffer/build_Darwin-framebuffer_image-history_image.o
@@ -144,7 +143,7 @@ build/Darwin-framebuffer/frontends_framebuffer_fbtk_user.o
 build/Darwin-framebuffer/frontends_framebuffer_fbtk_window.o
 build/Darwin-framebuffer/frontends_framebuffer_fetch.o
 build/Darwin-framebuffer/frontends_framebuffer_findfile.o
-build/Darwin-framebuffer/frontends_framebuffer_font_internal.o
+build/Darwin-framebuffer/frontends_framebuffer_font_freetype.o
 build/Darwin-framebuffer/frontends_framebuffer_framebuffer.o
 build/Darwin-framebuffer/frontends_framebuffer_gui.o
 build/Darwin-framebuffer/frontends_framebuffer_local_history.o
@@ -206,6 +205,10 @@ build/Darwin-framebuffer/utils_utils.o
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnspsl.a
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnslog.a
 /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/15.2.0/../../../../arm-none-eabi/lib/armv6k/fpu/libm.a
+/opt/devkitpro/portlibs/3ds/lib/libfreetype.a
+/opt/devkitpro/portlibs/3ds/lib/libbz2.a
+/opt/devkitpro/portlibs/3ds/lib/libz.a
+/opt/devkitpro/portlibs/3ds/lib/libpng16.a
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/lib/libnsfb.a
 /opt/devkitpro/portlibs/3ds/lib/libSDL.a
 /opt/devkitpro/libctru/lib/libcitro3d.a

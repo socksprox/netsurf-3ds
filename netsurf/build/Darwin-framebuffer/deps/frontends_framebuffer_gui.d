@@ -11,9 +11,9 @@ build/Darwin-framebuffer/deps/frontends_framebuffer_gui.d build/Darwin-framebuff
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nslog/nslog.h \
  utils/messages.h include/netsurf/ssl_certs.h \
  include/netsurf/browser_window.h include/netsurf/mouse.h \
- include/netsurf/console.h include/netsurf/keypress.h \
- desktop/browser_history.h include/netsurf/plotters.h \
- include/netsurf/plot_style.h \
+ include/netsurf/console.h include/netsurf/browser.h \
+ include/netsurf/keypress.h desktop/browser_history.h \
+ include/netsurf/plotters.h include/netsurf/plot_style.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h \
  include/netsurf/window.h include/netsurf/misc.h \
  include/netsurf/netsurf.h desktop/gui_table.h \
@@ -24,9 +24,25 @@ build/Darwin-framebuffer/deps/frontends_framebuffer_gui.d build/Darwin-framebuff
  frontends/framebuffer/fbtk.h frontends/framebuffer/framebuffer.h \
  frontends/framebuffer/schedule.h frontends/framebuffer/findfile.h \
  frontends/framebuffer/image_data.h frontends/framebuffer/font.h \
- frontends/framebuffer/font_internal.h frontends/framebuffer/clipboard.h \
- frontends/framebuffer/fetch.h frontends/framebuffer/bitmap.h \
- frontends/framebuffer/local_history.h \
+ frontends/framebuffer/font_freetype.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/ft2build.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftheader.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/freetype.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftconfig.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftoption.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftstdlib.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/integer-types.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/public-macros.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/mac-support.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fttypes.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftsystem.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftimage.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fterrors.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftmoderr.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fterrdef.h \
+ /opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftglyph.h \
+ frontends/framebuffer/clipboard.h frontends/framebuffer/fetch.h \
+ frontends/framebuffer/bitmap.h frontends/framebuffer/local_history.h \
  /opt/devkitpro/libctru/include/3ds.h \
  /opt/devkitpro/libctru/include/3ds/types.h \
  /opt/devkitpro/libctru/include/3ds/result.h \
@@ -130,6 +146,7 @@ include/netsurf/ssl_certs.h:
 include/netsurf/browser_window.h:
 include/netsurf/mouse.h:
 include/netsurf/console.h:
+include/netsurf/browser.h:
 include/netsurf/keypress.h:
 desktop/browser_history.h:
 include/netsurf/plotters.h:
@@ -154,7 +171,23 @@ frontends/framebuffer/schedule.h:
 frontends/framebuffer/findfile.h:
 frontends/framebuffer/image_data.h:
 frontends/framebuffer/font.h:
-frontends/framebuffer/font_internal.h:
+frontends/framebuffer/font_freetype.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/ft2build.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftheader.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/freetype.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftconfig.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftoption.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/ftstdlib.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/integer-types.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/public-macros.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/config/mac-support.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fttypes.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftsystem.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftimage.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fterrors.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftmoderr.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/fterrdef.h:
+/opt/devkitpro/portlibs/3ds/include/freetype2/freetype/ftglyph.h:
 frontends/framebuffer/clipboard.h:
 frontends/framebuffer/fetch.h:
 frontends/framebuffer/bitmap.h:
