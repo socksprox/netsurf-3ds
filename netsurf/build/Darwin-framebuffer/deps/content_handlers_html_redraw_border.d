@@ -116,7 +116,7 @@ build/Darwin-framebuffer/deps/content_handlers_html_redraw_border.d build/Darwin
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/events/event_listener.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/bindings/hubbub/errors.h \
  content/content_protected.h include/netsurf/content_type.h \
- include/netsurf/mouse.h
+ include/netsurf/mouse.h content/handlers/html/redraw_style.h
 utils/log.h:
 utils/errors.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nslog/nslog.h:
@@ -240,3 +240,4 @@ content/handlers/html/private.h:
 content/content_protected.h:
 include/netsurf/content_type.h:
 include/netsurf/mouse.h:
+content/handlers/html/redraw_style.h:

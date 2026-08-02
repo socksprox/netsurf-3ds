@@ -20,6 +20,8 @@ S_HTML := box_construct.c	\
 	object.c		\
 	redraw.c		\
 	redraw_border.c		\
+	redraw_outline.c	\
+	redraw_style.c		\
 	script.c		\
 	table.c			\
 	textselection.c

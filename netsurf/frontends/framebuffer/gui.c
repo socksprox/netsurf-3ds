@@ -1327,7 +1327,10 @@ fb_redraw(fbtk_widget_t *widget,
 						bwidget->scrollx);
 
 				content_clip.x0 = max(clip.x0, doc_x);
-				content_clip.y0 = max(clip.y0, content_y0);
+				/* Leave one pixel above the content seam so
+				 * hairline borders are not cropped while the
+				 * page scrolls across the top screen. */
+				content_clip.y0 = max(clip.y0, content_y0 - 1);
 				content_clip.x1 = min(clip.x1,
 						doc_x + content_w);
 				content_clip.y1 = min(clip.y1, y + pane_h);

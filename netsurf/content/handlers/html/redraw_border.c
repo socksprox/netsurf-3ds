@@ -31,6 +31,7 @@
 
 #include "html/box.h"
 #include "html/private.h"
+#include "html/redraw_style.h"
 
 
 static plot_style_t plot_style_bdr = {
@@ -466,10 +467,10 @@ html_redraw_borders(struct box *box,
 	y = y_parent + box->y;
 
 	if (scale != 1.0) {
-		top *= scale;
-		right *= scale;
-		bottom *= scale;
-		left *= scale;
+		top = html_redraw_scale_border_width(top, scale);
+		right = html_redraw_scale_border_width(right, scale);
+		bottom = html_redraw_scale_border_width(bottom, scale);
+		left = html_redraw_scale_border_width(left, scale);
 		x *= scale;
 		y *= scale;
 	}
@@ -533,7 +534,7 @@ html_redraw_borders(struct box *box,
 						      z,
 						      col,
 						      box->border[side].style,
-						      box->border[side].width * scale,
+						      left,
 						      square_end_1 && square_end_2,
 						      clip,
 						      ctx);
@@ -574,7 +575,7 @@ html_redraw_borders(struct box *box,
 						      z,
 						      col,
 						      box->border[side].style,
-						      box->border[side].width * scale,
+						      right,
 						      square_end_1 && square_end_2,
 						      clip,
 						      ctx);
@@ -622,7 +623,7 @@ html_redraw_borders(struct box *box,
 						      z,
 						      col,
 						      box->border[side].style,
-						      box->border[side].width * scale,
+						      top,
 						      square_end_1 && square_end_2,
 						      clip,
 						      ctx);
@@ -670,7 +671,7 @@ html_redraw_borders(struct box *box,
 						      z,
 						      col,
 						      box->border[side].style,
-						      box->border[side].width * scale,
+						      bottom,
 						      square_end_1 && square_end_2,
 						      clip,
 						      ctx);
@@ -723,10 +724,10 @@ html_redraw_inline_borders(struct box *box,
 	nserror res;
 
 	if (scale != 1.0) {
-		top *= scale;
-		right *= scale;
-		bottom *= scale;
-		left *= scale;
+		top = html_redraw_scale_border_width(top, scale);
+		right = html_redraw_scale_border_width(right, scale);
+		bottom = html_redraw_scale_border_width(bottom, scale);
+		left = html_redraw_scale_border_width(left, scale);
 	}
 
 	/* Calculate border vertices

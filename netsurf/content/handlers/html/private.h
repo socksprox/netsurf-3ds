@@ -310,6 +310,17 @@ bool html_redraw_inline_borders(struct box *box, struct rect b,
 		const struct redraw_context *ctx);
 
 
+bool html_redraw_outline(struct box *box,
+		int x, int y,
+		int padding_width, int padding_height,
+		int border_left, int border_top,
+		int border_right, int border_bottom,
+		const struct rect *clip,
+		float scale,
+		const css_unit_ctx *unit_len_ctx,
+		const struct redraw_context *ctx);
+
+
 /* in html/script.c */
 dom_hubbub_error html_process_script(void *ctx, dom_node *node);
 

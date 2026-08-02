@@ -63,6 +63,7 @@
 #include "html/form_internal.h"
 #include "html/private.h"
 #include "html/layout.h"
+#include "html/redraw_style.h"
 
 
 bool html_redraw_debug = false;
@@ -743,6 +744,7 @@ static bool html_redraw_background(int x, int y, struct box *box, float scale,
 
 		/* plot the background colour */
 		css_computed_background_color(background->style, &bgcol);
+		bgcol = html_redraw_css_color_with_opacity(bgcol, background->style);
 
 		if (nscss_color_is_transparent(bgcol) == false) {
 			*background_colour = nscss_color_to_ns(bgcol);
@@ -903,6 +905,7 @@ static bool html_redraw_inline_background(int x, int y, struct box *box,
 
 	/* plot the background colour */
 	css_computed_background_color(box->style, &bgcol);
+	bgcol = html_redraw_css_color_with_opacity(bgcol, box->style);
 
 	if (nscss_color_is_transparent(bgcol) == false) {
 		*background_colour = nscss_color_to_ns(bgcol);
@@ -1288,10 +1291,14 @@ bool html_redraw_box(const html_content *html, struct box *box,
 				box->padding[RIGHT]) * scale;
 		padding_height = (box->padding[TOP] + box->height +
 				box->padding[BOTTOM]) * scale;
-		border_left = box->border[LEFT].width * scale;
-		border_top = box->border[TOP].width * scale;
-		border_right = box->border[RIGHT].width * scale;
-		border_bottom = box->border[BOTTOM].width * scale;
+		border_left = html_redraw_scale_border_width(
+				box->border[LEFT].width, scale);
+		border_top = html_redraw_scale_border_width(
+				box->border[TOP].width, scale);
+		border_right = html_redraw_scale_border_width(
+				box->border[RIGHT].width, scale);
+		border_bottom = html_redraw_scale_border_width(
+				box->border[BOTTOM].width, scale);
 	}
 
 	/* calculate rectangle covering this box and descendants */
@@ -1444,6 +1451,22 @@ bool html_redraw_box(const html_content *html, struct box *box,
 
 	} else if (box->type == BOX_BLOCK || box->type == BOX_INLINE_BLOCK ||
 			box->type == BOX_TABLE_CELL || box->object) {
+		int bx0 = x - border_left;
+		int by0 = y - border_top;
+		int bx1 = x + padding_width + border_right;
+		int by1 = y + padding_height + border_bottom;
+
+		/* Descendant bounds omit the border box; extend so hairline
+		 * borders are not cropped by the per-box clip. */
+		if (r.x0 > bx0)
+			r.x0 = bx0;
+		if (r.y0 > by0)
+			r.y0 = by0;
+		if (r.x1 < bx1)
+			r.x1 = bx1;
+		if (r.y1 < by1)
+			r.y1 = by1;
+
 		/* find intersection of clip rectangle and box */
 		if (r.x0 < clip->x0) r.x0 = clip->x0;
 		if (r.y0 < clip->y0) r.y0 = clip->y0;
@@ -1540,6 +1563,23 @@ bool html_redraw_box(const html_content *html, struct box *box,
 			return false;
 	}
 
+	if (box->style &&
+	    box->type != BOX_TEXT &&
+	    box->type != BOX_INLINE_END &&
+	    (box->type != BOX_INLINE || box->object ||
+	     box->flags & IFRAME || box->flags & REPLACE_DIM ||
+	     (box->gadget != NULL &&
+	      (box->gadget->type == GADGET_TEXTAREA ||
+	       box->gadget->type == GADGET_TEXTBOX ||
+	       box->gadget->type == GADGET_PASSWORD)))) {
+		if (!html_redraw_outline(box, x, y,
+				padding_width, padding_height,
+				border_left, border_top,
+				border_right, border_bottom,
+				&r, scale, &html->unit_len_ctx, ctx))
+			return false;
+	}
+
 	/* backgrounds and borders for non-replaced inlines */
 	if (box->style && box->type == BOX_INLINE && box->inline_end &&
 			(html_redraw_box_has_background(box) ||
@@ -1584,8 +1624,10 @@ bool html_redraw_box(const html_content *html, struct box *box,
 				ib_y = (y_parent + ib->y) * scale;
 				ib_p_width = (ib->padding[LEFT] + ib->width +
 						ib->padding[RIGHT]) * scale;
-				ib_b_left = ib->border[LEFT].width * scale;
-				ib_b_right = ib->border[RIGHT].width * scale;
+				ib_b_left = html_redraw_scale_border_width(
+						ib->border[LEFT].width, scale);
+				ib_b_right = html_redraw_scale_border_width(
+						ib->border[RIGHT].width, scale);
 			}
 
 			if ((ib->flags & NEW_LINE) && ib != box) {

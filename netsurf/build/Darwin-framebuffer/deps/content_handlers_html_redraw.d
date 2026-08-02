@@ -129,7 +129,7 @@ build/Darwin-framebuffer/deps/content_handlers_html_redraw.d build/Darwin-frameb
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/bindings/hubbub/parser.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/hubbub/errors.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/bindings/hubbub/errors.h \
- content/handlers/html/layout.h
+ content/handlers/html/layout.h content/handlers/html/redraw_style.h
 utils/config.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/dom.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/inttypes.h:
@@ -283,3 +283,4 @@ content/handlers/html/private.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/hubbub/errors.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/dom/bindings/hubbub/errors.h:
 content/handlers/html/layout.h:
+content/handlers/html/redraw_style.h:

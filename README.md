@@ -42,6 +42,7 @@ Here are some things not in the code base, but are planned to be added:
 - some things (e.g. larger images) distort while scrolling.
 - Text is often cut off or wraps incorrectly
 - JavaScript is experimental; enable via app menu or Settings (uses extra memory; HiMem recommended)
+- See [docs/css-engine-gaps.md](docs/css-engine-gaps.md) for CSS/rendering limitations and roadmap
 - Support for several media types is disabled. (SVG, WebP)
 
 ## What it will probably never do:

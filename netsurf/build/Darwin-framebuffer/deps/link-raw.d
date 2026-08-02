@@ -302,6 +302,8 @@ build/Darwin-framebuffer/content_handlers_html_layout_flex.o
 build/Darwin-framebuffer/content_handlers_html_object.o
 build/Darwin-framebuffer/content_handlers_html_redraw.o
 build/Darwin-framebuffer/content_handlers_html_redraw_border.o
+build/Darwin-framebuffer/content_handlers_html_redraw_outline.o
+build/Darwin-framebuffer/content_handlers_html_redraw_style.o
 build/Darwin-framebuffer/content_handlers_html_script.o
 build/Darwin-framebuffer/content_handlers_html_table.o
 build/Darwin-framebuffer/content_handlers_html_textselection.o
