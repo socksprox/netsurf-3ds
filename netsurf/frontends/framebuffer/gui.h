@@ -19,6 +19,9 @@
 #ifndef NETSURF_FB_GUI_H
 #define NETSURF_FB_GUI_H
 
+#ifdef __3DS__
+#define FB_3DS_SCREEN_HEIGHT 240
+#endif
 
 struct fbtk_widget_s;
 
@@ -43,6 +46,9 @@ struct gui_window {
 	struct fbtk_widget_s *hscroll;
 	struct fbtk_widget_s *vscroll;
 	struct fbtk_widget_s *browser;
+#ifdef __3DS__
+	struct fbtk_widget_s *browser_top;
+#endif
 	struct fbtk_widget_s *toolbar;
 	struct fbtk_widget_s *bottom_right;
 

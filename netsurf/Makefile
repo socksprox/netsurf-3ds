@@ -54,21 +54,13 @@ else
 endif
 VQ=@
 
-# Override this only if the host compiler is called something different
-BUILD_CC := $(DEVKITARM)/bin/arm-none-eabi-gcc 
+# Host compiler for build-time tools (convert_image, etc.)
+BUILD_CC ?= cc
 
 MAKEROM := makerom
-#cc
 BUILD_CFLAGS = -g -W -Wall -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wmissing-declarations -Wuninitialized \
-	-Wno-unused-parameter  \
-	-I$(DEVKITPRO)/libctru/include \
-	-I$(DEVKITPRO)/portlibs/3ds/include \
-	-I$(DEVKITARM)/arm-none-eabi/include \
-	-I$(DEVKITARM)/lib/gcc/arm-none-eabi/13.2.0/include \
-	-DARM11 -D_3DS \
-	-D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
-	-g -Wall -O2 -mword-relocations
+	-Wno-unused-parameter
 # -nostdinc -nostdinc++
 # compute HOST, TARGET and SUBTARGET
 include frontends/Makefile.hts
@@ -351,11 +343,11 @@ IFLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 $(EXETARGET): $(OBJECTS) $(RESOURCES) $(MESSAGES) tools/linktrace-to-depfile.pl
 	$(VQ)echo "    LINK: $(EXETARGET)"
 ifneq ($(TARGET),riscos)
-	$(BUILD_CC) -o $(EXETARGET) $(OBJECTS) $(LDFLAGS) -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft > $(DEPROOT)/link-raw.d
+	$(CC) -o $(EXETARGET) $(OBJECTS) $(LDFLAGS) -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft > $(DEPROOT)/link-raw.d
 else
 	@# RISC OS targets are a bit special: we need to convert ELF -> AIF
   ifeq ($(SUBTARGET),-aof)
-	$(Q)$(BUILD_CC) -o $(EXETARGET) $(OBJECTS) $(LDFLAGS) -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft > $(DEPROOT)/link-raw.d
+	$(Q)$(CC) -o $(EXETARGET) $(OBJECTS) $(LDFLAGS) -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft > $(DEPROOT)/link-raw.d
   else
 	$(Q)$(CXX) -o $(EXETARGET:,ff8=,e1f) $(OBJECTS) $(LDFLAGS) -D__3DS__ -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft > $(DEPROOT)/link-raw.d
 	$(Q)$(ELF2AIF) $(EXETARGET:,ff8=,e1f) $(EXETARGET)
@@ -363,7 +355,7 @@ else
   endif
 endif
 	$(VQ)echo "LINKDEPS: $(EXETARGET)"
-	$(Q)echo -n "$(EXETARGET) $(DEPROOT)/link.d: " > $(DEPROOT)/link.d
+	$(Q)printf '%s ' "$(EXETARGET) $(DEPROOT)/link.d:" > $(DEPROOT)/link.d
 	$(Q)$(PERL) tools/linktrace-to-depfile.pl < $(DEPROOT)/link-raw.d >> $(DEPROOT)/link.d
 ifeq ($(NETSURF_STRIP_BINARY),YES)
 	$(VQ)echo "   STRIP: $(EXETARGET)"

@@ -18,9 +18,26 @@
 
 # HOST = arm-none-eabi
 
-# PATH := $(DEVKITARM)/bin:$(PATH)
+# devkitPro toolchain (override with environment if installed elsewhere)
+DEVKITPRO ?= /opt/devkitpro
+DEVKITARM ?= $(DEVKITPRO)/devkitARM
+THREE_DS_IP ?= 192.168.86.208
 
-CC := $(DEVKITARM)/bin/arm-none-eabi-gcc 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  JOBS ?= $(shell sysctl -n hw.ncpu)
+  BISON_BIN := $(wildcard /opt/homebrew/opt/bison/bin)
+else
+  JOBS ?= $(shell nproc 2>/dev/null || echo 4)
+  BISON_BIN :=
+endif
+
+export DEVKITPRO
+export DEVKITARM
+export PATH := $(BISON_BIN):$(DEVKITARM)/bin:$(DEVKITPRO)/tools/bin:$(PATH)
+export PKG_CONFIG_PATH := $(DEVKITPRO)/portlibs/3ds/lib/pkgconfig:$(PKG_CONFIG_PATH)
+
+CC := $(DEVKITARM)/bin/arm-none-eabi-gcc
 
 # Component settings
 COMPONENT := netsurf-all
@@ -95,7 +112,14 @@ else
   endif
 endif
 
-.PHONY: build install clean checkout-release checkout-head dist dist-head
+.PHONY: all deploy build install clean checkout-release checkout-head dist dist-head
+
+# Default target: build 3DS homebrew binary (nsfb.3dsx)
+all: build
+
+deploy: build
+	@echo Deploying nsfb.3dsx to 3DS at $(THREE_DS_IP)...
+	3dslink -a $(THREE_DS_IP) nsfb.3dsx
 
 # clean macro for each sub target
 define do_clean
@@ -129,7 +153,8 @@ $(TMP_PREFIX)/build-stamp:
 	mkdir -p $(TMP_PREFIX)/bin
 	$(foreach L,$(NSLIB_TARG),$(call do_prefix_install,$(L)))
 	$(foreach L,$(NSBUILD_TARG),$(call do_build_prefix_install,$(L)))
-	$(MAKE) --directory=$(NETSURF_TARG) PREFIX=$(PREFIX) TARGET=$(TARGET) $(NETSURF_CONFIG)
+	$(MAKE) --directory=$(NETSURF_TARG) PREFIX=$(TMP_PREFIX) TARGET=$(TARGET) NOCIA=1 -j$(JOBS) $(NETSURF_CONFIG)
+	cp $(NETSURF_TARG)/nsfb.3dsx nsfb.3dsx
 	touch $@
 
 package: $(TMP_PREFIX)/build-stamp
@@ -140,6 +165,7 @@ install: $(TMP_PREFIX)/build-stamp
 
 clean:
 	$(RM) -r $(TMP_PREFIX)
+	$(RM) nsfb.3dsx
 	$(foreach L,$(NSLIB_TARG),$(call do_clean,$(L)))
 	$(foreach L,$(NSBUILD_TARG),$(call do_build_clean,$(L)))
 	$(MAKE) clean --directory=$(NETSURF_TARG) TARGET=$(TARGET)

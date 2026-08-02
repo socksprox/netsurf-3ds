@@ -1,0 +1,1250 @@
+Grammar
+
+    0 $accept: Input $end
+
+    1 Input: Statements
+
+    2 Statements: Statement
+    3           | Statements Statement
+    4           | error ';'
+
+    5 Statement: Binding
+    6          | Class
+    7          | Method
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER '{' BindingArgs '}' ';'
+
+    9 BindingArgs: BindingArg
+   10            | BindingArgs BindingArg
+
+   11 BindingArg: WebIDL
+   12           | BindingAndMethodType CBlock ';'
+
+   13 WebIDL: TOK_WEBIDL TOK_STRING_LITERAL ';'
+
+   14 CTypeSpecifier: TOK_UNSIGNED TOK_IDENTIFIER
+   15               | TOK_STRUCT TOK_IDENTIFIER
+   16               | TOK_UNION TOK_IDENTIFIER
+   17               | TOK_IDENTIFIER
+
+   18 CType: CTypeSpecifier
+   19      | CTypeSpecifier '*'
+
+   20 CTypeIdent: CType TOK_IDENTIFIER
+   21           | CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+
+   22 CBlock: TOK_CCODE_LITERAL
+   23       | CBlock TOK_CCODE_LITERAL
+
+   24 ParameterList: CTypeIdent
+   25              | ParameterList ',' CTypeIdent
+
+   26 Method: MethodType MethodDeclarator CBlock
+   27       | MethodType MethodDeclarator ';'
+
+   28 MethodType: TOK_INIT
+   29           | TOK_FINI
+   30           | TOK_METHOD
+   31           | TOK_GETTER
+   32           | TOK_SETTER
+   33           | TOK_PROTOTYPE
+   34           | BindingAndMethodType
+
+   35 BindingAndMethodType: TOK_PREFACE
+   36                     | TOK_PROLOGUE
+   37                     | TOK_EPILOGUE
+   38                     | TOK_POSTFACE
+
+   39 MethodName: TOK_IDENTIFIER
+   40           | TOK_METHOD
+   41           | TOK_TYPE
+
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ParameterList ')'
+   43                 | TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ')'
+   44                 | TOK_IDENTIFIER '(' ParameterList ')'
+   45                 | TOK_IDENTIFIER '(' ')'
+
+   46 Class: TOK_CLASS TOK_IDENTIFIER '{' ClassArgs '}' ';'
+
+   47 ClassArgs: ε
+   48          | ClassArg ClassArgs
+
+   49 ClassArg: TOK_PRIVATE CTypeIdent ';'
+   50         | TOK_INTERNAL CTypeIdent ';'
+   51         | TOK_PROPERTY Modifiers TOK_IDENTIFIER ';'
+   52         | TOK_FLAGS ClassFlags ';'
+   53         | BindingAndMethodType CBlock ';'
+
+   54 ClassFlags: TOK_IDENTIFIER
+   55           | ClassFlags ',' TOK_IDENTIFIER
+
+   56 Modifiers: ε
+   57          | Modifiers Modifier
+
+   58 Modifier: TOK_TYPE
+   59         | TOK_UNSHARED
+   60         | TOK_SHARED
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '(' (40) 42 43 44 45
+    ')' (41) 42 43 44 45
+    '*' (42) 19
+    ',' (44) 25 55
+    ';' (59) 4 8 12 13 27 46 49 50 51 52 53
+    '{' (123) 8 46
+    '}' (125) 8 46
+    error (256) 4
+    TOK_BINDING (258) 8
+    TOK_WEBIDL (259) 13
+    TOK_PREFACE (260) 35
+    TOK_PROLOGUE (261) 36
+    TOK_EPILOGUE (262) 37
+    TOK_POSTFACE (263) 38
+    TOK_CLASS (264) 46
+    TOK_PRIVATE (265) 49
+    TOK_INTERNAL (266) 50
+    TOK_FLAGS (267) 52
+    TOK_TYPE (268) 41 58
+    TOK_UNSHARED (269) 59
+    TOK_SHARED (270) 60
+    TOK_PROPERTY (271) 51
+    TOK_INIT (272) 28
+    TOK_FINI (273) 29
+    TOK_METHOD (274) 30 40
+    TOK_GETTER (275) 31
+    TOK_SETTER (276) 32
+    TOK_PROTOTYPE (277) 33
+    TOK_DBLCOLON (278) 21 42 43
+    TOK_STRUCT (279) 15
+    TOK_UNION (280) 16
+    TOK_UNSIGNED (281) 14
+    TOK_IDENTIFIER <text> (282) 8 14 15 16 17 20 21 39 42 43 44 45 46 51 54 55
+    TOK_STRING_LITERAL <text> (283) 13
+    TOK_CCODE_LITERAL <text> (284) 22 23
+
+
+Nonterminals, with rules where they appear
+
+    $accept (37)
+        on left: 0
+    Input (38)
+        on left: 1
+        on right: 0
+    Statements <node> (39)
+        on left: 2 3 4
+        on right: 1 3
+    Statement <node> (40)
+        on left: 5 6 7
+        on right: 2 3
+    Binding <node> (41)
+        on left: 8
+        on right: 5
+    BindingArgs <node> (42)
+        on left: 9 10
+        on right: 8 10
+    BindingArg <node> (43)
+        on left: 11 12
+        on right: 9 10
+    WebIDL <node> (44)
+        on left: 13
+        on right: 11
+    CTypeSpecifier <node> (45)
+        on left: 14 15 16 17
+        on right: 18 19
+    CType <node> (46)
+        on left: 18 19
+        on right: 20 21
+    CTypeIdent <node> (47)
+        on left: 20 21
+        on right: 24 25 49 50
+    CBlock <text> (48)
+        on left: 22 23
+        on right: 12 23 26 53
+    ParameterList <node> (49)
+        on left: 24 25
+        on right: 25 42 44
+    Method <node> (50)
+        on left: 26 27
+        on right: 7
+    MethodType <value> (51)
+        on left: 28 29 30 31 32 33 34
+        on right: 26 27
+    BindingAndMethodType <value> (52)
+        on left: 35 36 37 38
+        on right: 12 34 53
+    MethodName <text> (53)
+        on left: 39 40 41
+        on right: 42 43
+    MethodDeclarator <node> (54)
+        on left: 42 43 44 45
+        on right: 26 27
+    Class <node> (55)
+        on left: 46
+        on right: 6
+    ClassArgs <node> (56)
+        on left: 47 48
+        on right: 46 48
+    ClassArg <node> (57)
+        on left: 49 50 51 52 53
+        on right: 48
+    ClassFlags <node> (58)
+        on left: 54 55
+        on right: 52 55
+    Modifiers <value> (59)
+        on left: 56 57
+        on right: 51 57
+    Modifier <value> (60)
+        on left: 58 59 60
+        on right: 57
+
+
+State 0
+
+    0 $accept: • Input $end
+    1 Input: • Statements
+    2 Statements: • Statement
+    3           | • Statements Statement
+    4           | • error ';'
+    5 Statement: • Binding
+    6          | • Class
+    7          | • Method
+    8 Binding: • TOK_BINDING TOK_IDENTIFIER '{' BindingArgs '}' ';'
+   26 Method: • MethodType MethodDeclarator CBlock
+   27       | • MethodType MethodDeclarator ';'
+   28 MethodType: • TOK_INIT
+   29           | • TOK_FINI
+   30           | • TOK_METHOD
+   31           | • TOK_GETTER
+   32           | • TOK_SETTER
+   33           | • TOK_PROTOTYPE
+   34           | • BindingAndMethodType
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+   46 Class: • TOK_CLASS TOK_IDENTIFIER '{' ClassArgs '}' ';'
+
+    error          shift, and go to state 1
+    TOK_BINDING    shift, and go to state 2
+    TOK_PREFACE    shift, and go to state 3
+    TOK_PROLOGUE   shift, and go to state 4
+    TOK_EPILOGUE   shift, and go to state 5
+    TOK_POSTFACE   shift, and go to state 6
+    TOK_CLASS      shift, and go to state 7
+    TOK_INIT       shift, and go to state 8
+    TOK_FINI       shift, and go to state 9
+    TOK_METHOD     shift, and go to state 10
+    TOK_GETTER     shift, and go to state 11
+    TOK_SETTER     shift, and go to state 12
+    TOK_PROTOTYPE  shift, and go to state 13
+
+    Input                 go to state 14
+    Statements            go to state 15
+    Statement             go to state 16
+    Binding               go to state 17
+    Method                go to state 18
+    MethodType            go to state 19
+    BindingAndMethodType  go to state 20
+    Class                 go to state 21
+
+
+State 1
+
+    4 Statements: error • ';'
+
+    ';'  shift, and go to state 22
+
+
+State 2
+
+    8 Binding: TOK_BINDING • TOK_IDENTIFIER '{' BindingArgs '}' ';'
+
+    TOK_IDENTIFIER  shift, and go to state 23
+
+
+State 3
+
+   35 BindingAndMethodType: TOK_PREFACE •
+
+    $default  reduce using rule 35 (BindingAndMethodType)
+
+
+State 4
+
+   36 BindingAndMethodType: TOK_PROLOGUE •
+
+    $default  reduce using rule 36 (BindingAndMethodType)
+
+
+State 5
+
+   37 BindingAndMethodType: TOK_EPILOGUE •
+
+    $default  reduce using rule 37 (BindingAndMethodType)
+
+
+State 6
+
+   38 BindingAndMethodType: TOK_POSTFACE •
+
+    $default  reduce using rule 38 (BindingAndMethodType)
+
+
+State 7
+
+   46 Class: TOK_CLASS • TOK_IDENTIFIER '{' ClassArgs '}' ';'
+
+    TOK_IDENTIFIER  shift, and go to state 24
+
+
+State 8
+
+   28 MethodType: TOK_INIT •
+
+    $default  reduce using rule 28 (MethodType)
+
+
+State 9
+
+   29 MethodType: TOK_FINI •
+
+    $default  reduce using rule 29 (MethodType)
+
+
+State 10
+
+   30 MethodType: TOK_METHOD •
+
+    $default  reduce using rule 30 (MethodType)
+
+
+State 11
+
+   31 MethodType: TOK_GETTER •
+
+    $default  reduce using rule 31 (MethodType)
+
+
+State 12
+
+   32 MethodType: TOK_SETTER •
+
+    $default  reduce using rule 32 (MethodType)
+
+
+State 13
+
+   33 MethodType: TOK_PROTOTYPE •
+
+    $default  reduce using rule 33 (MethodType)
+
+
+State 14
+
+    0 $accept: Input • $end
+
+    $end  shift, and go to state 25
+
+
+State 15
+
+    1 Input: Statements •  [$end]
+    3 Statements: Statements • Statement
+    5 Statement: • Binding
+    6          | • Class
+    7          | • Method
+    8 Binding: • TOK_BINDING TOK_IDENTIFIER '{' BindingArgs '}' ';'
+   26 Method: • MethodType MethodDeclarator CBlock
+   27       | • MethodType MethodDeclarator ';'
+   28 MethodType: • TOK_INIT
+   29           | • TOK_FINI
+   30           | • TOK_METHOD
+   31           | • TOK_GETTER
+   32           | • TOK_SETTER
+   33           | • TOK_PROTOTYPE
+   34           | • BindingAndMethodType
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+   46 Class: • TOK_CLASS TOK_IDENTIFIER '{' ClassArgs '}' ';'
+
+    TOK_BINDING    shift, and go to state 2
+    TOK_PREFACE    shift, and go to state 3
+    TOK_PROLOGUE   shift, and go to state 4
+    TOK_EPILOGUE   shift, and go to state 5
+    TOK_POSTFACE   shift, and go to state 6
+    TOK_CLASS      shift, and go to state 7
+    TOK_INIT       shift, and go to state 8
+    TOK_FINI       shift, and go to state 9
+    TOK_METHOD     shift, and go to state 10
+    TOK_GETTER     shift, and go to state 11
+    TOK_SETTER     shift, and go to state 12
+    TOK_PROTOTYPE  shift, and go to state 13
+
+    $default  reduce using rule 1 (Input)
+
+    Statement             go to state 26
+    Binding               go to state 17
+    Method                go to state 18
+    MethodType            go to state 19
+    BindingAndMethodType  go to state 20
+    Class                 go to state 21
+
+
+State 16
+
+    2 Statements: Statement •
+
+    $default  reduce using rule 2 (Statements)
+
+
+State 17
+
+    5 Statement: Binding •
+
+    $default  reduce using rule 5 (Statement)
+
+
+State 18
+
+    7 Statement: Method •
+
+    $default  reduce using rule 7 (Statement)
+
+
+State 19
+
+   26 Method: MethodType • MethodDeclarator CBlock
+   27       | MethodType • MethodDeclarator ';'
+   42 MethodDeclarator: • TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ParameterList ')'
+   43                 | • TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ')'
+   44                 | • TOK_IDENTIFIER '(' ParameterList ')'
+   45                 | • TOK_IDENTIFIER '(' ')'
+
+    TOK_IDENTIFIER  shift, and go to state 27
+
+    MethodDeclarator  go to state 28
+
+
+State 20
+
+   34 MethodType: BindingAndMethodType •
+
+    $default  reduce using rule 34 (MethodType)
+
+
+State 21
+
+    6 Statement: Class •
+
+    $default  reduce using rule 6 (Statement)
+
+
+State 22
+
+    4 Statements: error ';' •
+
+    $default  reduce using rule 4 (Statements)
+
+
+State 23
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER • '{' BindingArgs '}' ';'
+
+    '{'  shift, and go to state 29
+
+
+State 24
+
+   46 Class: TOK_CLASS TOK_IDENTIFIER • '{' ClassArgs '}' ';'
+
+    '{'  shift, and go to state 30
+
+
+State 25
+
+    0 $accept: Input $end •
+
+    $default  accept
+
+
+State 26
+
+    3 Statements: Statements Statement •
+
+    $default  reduce using rule 3 (Statements)
+
+
+State 27
+
+   42 MethodDeclarator: TOK_IDENTIFIER • TOK_DBLCOLON MethodName '(' ParameterList ')'
+   43                 | TOK_IDENTIFIER • TOK_DBLCOLON MethodName '(' ')'
+   44                 | TOK_IDENTIFIER • '(' ParameterList ')'
+   45                 | TOK_IDENTIFIER • '(' ')'
+
+    TOK_DBLCOLON  shift, and go to state 31
+    '('           shift, and go to state 32
+
+
+State 28
+
+   22 CBlock: • TOK_CCODE_LITERAL
+   23       | • CBlock TOK_CCODE_LITERAL
+   26 Method: MethodType MethodDeclarator • CBlock
+   27       | MethodType MethodDeclarator • ';'
+
+    TOK_CCODE_LITERAL  shift, and go to state 33
+    ';'                shift, and go to state 34
+
+    CBlock  go to state 35
+
+
+State 29
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER '{' • BindingArgs '}' ';'
+    9 BindingArgs: • BindingArg
+   10            | • BindingArgs BindingArg
+   11 BindingArg: • WebIDL
+   12           | • BindingAndMethodType CBlock ';'
+   13 WebIDL: • TOK_WEBIDL TOK_STRING_LITERAL ';'
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+
+    TOK_WEBIDL    shift, and go to state 36
+    TOK_PREFACE   shift, and go to state 3
+    TOK_PROLOGUE  shift, and go to state 4
+    TOK_EPILOGUE  shift, and go to state 5
+    TOK_POSTFACE  shift, and go to state 6
+
+    BindingArgs           go to state 37
+    BindingArg            go to state 38
+    WebIDL                go to state 39
+    BindingAndMethodType  go to state 40
+
+
+State 30
+
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+   46 Class: TOK_CLASS TOK_IDENTIFIER '{' • ClassArgs '}' ';'
+   47 ClassArgs: ε •  ['}']
+   48          | • ClassArg ClassArgs
+   49 ClassArg: • TOK_PRIVATE CTypeIdent ';'
+   50         | • TOK_INTERNAL CTypeIdent ';'
+   51         | • TOK_PROPERTY Modifiers TOK_IDENTIFIER ';'
+   52         | • TOK_FLAGS ClassFlags ';'
+   53         | • BindingAndMethodType CBlock ';'
+
+    TOK_PREFACE   shift, and go to state 3
+    TOK_PROLOGUE  shift, and go to state 4
+    TOK_EPILOGUE  shift, and go to state 5
+    TOK_POSTFACE  shift, and go to state 6
+    TOK_PRIVATE   shift, and go to state 41
+    TOK_INTERNAL  shift, and go to state 42
+    TOK_FLAGS     shift, and go to state 43
+    TOK_PROPERTY  shift, and go to state 44
+
+    $default  reduce using rule 47 (ClassArgs)
+
+    BindingAndMethodType  go to state 45
+    ClassArgs             go to state 46
+    ClassArg              go to state 47
+
+
+State 31
+
+   39 MethodName: • TOK_IDENTIFIER
+   40           | • TOK_METHOD
+   41           | • TOK_TYPE
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON • MethodName '(' ParameterList ')'
+   43                 | TOK_IDENTIFIER TOK_DBLCOLON • MethodName '(' ')'
+
+    TOK_TYPE        shift, and go to state 48
+    TOK_METHOD      shift, and go to state 49
+    TOK_IDENTIFIER  shift, and go to state 50
+
+    MethodName  go to state 51
+
+
+State 32
+
+   14 CTypeSpecifier: • TOK_UNSIGNED TOK_IDENTIFIER
+   15               | • TOK_STRUCT TOK_IDENTIFIER
+   16               | • TOK_UNION TOK_IDENTIFIER
+   17               | • TOK_IDENTIFIER
+   18 CType: • CTypeSpecifier
+   19      | • CTypeSpecifier '*'
+   20 CTypeIdent: • CType TOK_IDENTIFIER
+   21           | • CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+   24 ParameterList: • CTypeIdent
+   25              | • ParameterList ',' CTypeIdent
+   44 MethodDeclarator: TOK_IDENTIFIER '(' • ParameterList ')'
+   45                 | TOK_IDENTIFIER '(' • ')'
+
+    TOK_STRUCT      shift, and go to state 52
+    TOK_UNION       shift, and go to state 53
+    TOK_UNSIGNED    shift, and go to state 54
+    TOK_IDENTIFIER  shift, and go to state 55
+    ')'             shift, and go to state 56
+
+    CTypeSpecifier  go to state 57
+    CType           go to state 58
+    CTypeIdent      go to state 59
+    ParameterList   go to state 60
+
+
+State 33
+
+   22 CBlock: TOK_CCODE_LITERAL •
+
+    $default  reduce using rule 22 (CBlock)
+
+
+State 34
+
+   27 Method: MethodType MethodDeclarator ';' •
+
+    $default  reduce using rule 27 (Method)
+
+
+State 35
+
+   23 CBlock: CBlock • TOK_CCODE_LITERAL
+   26 Method: MethodType MethodDeclarator CBlock •  [$end, TOK_BINDING, TOK_PREFACE, TOK_PROLOGUE, TOK_EPILOGUE, TOK_POSTFACE, TOK_CLASS, TOK_INIT, TOK_FINI, TOK_METHOD, TOK_GETTER, TOK_SETTER, TOK_PROTOTYPE]
+
+    TOK_CCODE_LITERAL  shift, and go to state 61
+
+    $default  reduce using rule 26 (Method)
+
+
+State 36
+
+   13 WebIDL: TOK_WEBIDL • TOK_STRING_LITERAL ';'
+
+    TOK_STRING_LITERAL  shift, and go to state 62
+
+
+State 37
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER '{' BindingArgs • '}' ';'
+   10 BindingArgs: BindingArgs • BindingArg
+   11 BindingArg: • WebIDL
+   12           | • BindingAndMethodType CBlock ';'
+   13 WebIDL: • TOK_WEBIDL TOK_STRING_LITERAL ';'
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+
+    TOK_WEBIDL    shift, and go to state 36
+    TOK_PREFACE   shift, and go to state 3
+    TOK_PROLOGUE  shift, and go to state 4
+    TOK_EPILOGUE  shift, and go to state 5
+    TOK_POSTFACE  shift, and go to state 6
+    '}'           shift, and go to state 63
+
+    BindingArg            go to state 64
+    WebIDL                go to state 39
+    BindingAndMethodType  go to state 40
+
+
+State 38
+
+    9 BindingArgs: BindingArg •
+
+    $default  reduce using rule 9 (BindingArgs)
+
+
+State 39
+
+   11 BindingArg: WebIDL •
+
+    $default  reduce using rule 11 (BindingArg)
+
+
+State 40
+
+   12 BindingArg: BindingAndMethodType • CBlock ';'
+   22 CBlock: • TOK_CCODE_LITERAL
+   23       | • CBlock TOK_CCODE_LITERAL
+
+    TOK_CCODE_LITERAL  shift, and go to state 33
+
+    CBlock  go to state 65
+
+
+State 41
+
+   14 CTypeSpecifier: • TOK_UNSIGNED TOK_IDENTIFIER
+   15               | • TOK_STRUCT TOK_IDENTIFIER
+   16               | • TOK_UNION TOK_IDENTIFIER
+   17               | • TOK_IDENTIFIER
+   18 CType: • CTypeSpecifier
+   19      | • CTypeSpecifier '*'
+   20 CTypeIdent: • CType TOK_IDENTIFIER
+   21           | • CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+   49 ClassArg: TOK_PRIVATE • CTypeIdent ';'
+
+    TOK_STRUCT      shift, and go to state 52
+    TOK_UNION       shift, and go to state 53
+    TOK_UNSIGNED    shift, and go to state 54
+    TOK_IDENTIFIER  shift, and go to state 55
+
+    CTypeSpecifier  go to state 57
+    CType           go to state 58
+    CTypeIdent      go to state 66
+
+
+State 42
+
+   14 CTypeSpecifier: • TOK_UNSIGNED TOK_IDENTIFIER
+   15               | • TOK_STRUCT TOK_IDENTIFIER
+   16               | • TOK_UNION TOK_IDENTIFIER
+   17               | • TOK_IDENTIFIER
+   18 CType: • CTypeSpecifier
+   19      | • CTypeSpecifier '*'
+   20 CTypeIdent: • CType TOK_IDENTIFIER
+   21           | • CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+   50 ClassArg: TOK_INTERNAL • CTypeIdent ';'
+
+    TOK_STRUCT      shift, and go to state 52
+    TOK_UNION       shift, and go to state 53
+    TOK_UNSIGNED    shift, and go to state 54
+    TOK_IDENTIFIER  shift, and go to state 55
+
+    CTypeSpecifier  go to state 57
+    CType           go to state 58
+    CTypeIdent      go to state 67
+
+
+State 43
+
+   52 ClassArg: TOK_FLAGS • ClassFlags ';'
+   54 ClassFlags: • TOK_IDENTIFIER
+   55           | • ClassFlags ',' TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 68
+
+    ClassFlags  go to state 69
+
+
+State 44
+
+   51 ClassArg: TOK_PROPERTY • Modifiers TOK_IDENTIFIER ';'
+   56 Modifiers: ε •
+   57          | • Modifiers Modifier
+
+    $default  reduce using rule 56 (Modifiers)
+
+    Modifiers  go to state 70
+
+
+State 45
+
+   22 CBlock: • TOK_CCODE_LITERAL
+   23       | • CBlock TOK_CCODE_LITERAL
+   53 ClassArg: BindingAndMethodType • CBlock ';'
+
+    TOK_CCODE_LITERAL  shift, and go to state 33
+
+    CBlock  go to state 71
+
+
+State 46
+
+   46 Class: TOK_CLASS TOK_IDENTIFIER '{' ClassArgs • '}' ';'
+
+    '}'  shift, and go to state 72
+
+
+State 47
+
+   35 BindingAndMethodType: • TOK_PREFACE
+   36                     | • TOK_PROLOGUE
+   37                     | • TOK_EPILOGUE
+   38                     | • TOK_POSTFACE
+   47 ClassArgs: ε •  ['}']
+   48          | • ClassArg ClassArgs
+   48          | ClassArg • ClassArgs
+   49 ClassArg: • TOK_PRIVATE CTypeIdent ';'
+   50         | • TOK_INTERNAL CTypeIdent ';'
+   51         | • TOK_PROPERTY Modifiers TOK_IDENTIFIER ';'
+   52         | • TOK_FLAGS ClassFlags ';'
+   53         | • BindingAndMethodType CBlock ';'
+
+    TOK_PREFACE   shift, and go to state 3
+    TOK_PROLOGUE  shift, and go to state 4
+    TOK_EPILOGUE  shift, and go to state 5
+    TOK_POSTFACE  shift, and go to state 6
+    TOK_PRIVATE   shift, and go to state 41
+    TOK_INTERNAL  shift, and go to state 42
+    TOK_FLAGS     shift, and go to state 43
+    TOK_PROPERTY  shift, and go to state 44
+
+    $default  reduce using rule 47 (ClassArgs)
+
+    BindingAndMethodType  go to state 45
+    ClassArgs             go to state 73
+    ClassArg              go to state 47
+
+
+State 48
+
+   41 MethodName: TOK_TYPE •
+
+    $default  reduce using rule 41 (MethodName)
+
+
+State 49
+
+   40 MethodName: TOK_METHOD •
+
+    $default  reduce using rule 40 (MethodName)
+
+
+State 50
+
+   39 MethodName: TOK_IDENTIFIER •
+
+    $default  reduce using rule 39 (MethodName)
+
+
+State 51
+
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName • '(' ParameterList ')'
+   43                 | TOK_IDENTIFIER TOK_DBLCOLON MethodName • '(' ')'
+
+    '('  shift, and go to state 74
+
+
+State 52
+
+   15 CTypeSpecifier: TOK_STRUCT • TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 75
+
+
+State 53
+
+   16 CTypeSpecifier: TOK_UNION • TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 76
+
+
+State 54
+
+   14 CTypeSpecifier: TOK_UNSIGNED • TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 77
+
+
+State 55
+
+   17 CTypeSpecifier: TOK_IDENTIFIER •
+
+    $default  reduce using rule 17 (CTypeSpecifier)
+
+
+State 56
+
+   45 MethodDeclarator: TOK_IDENTIFIER '(' ')' •
+
+    $default  reduce using rule 45 (MethodDeclarator)
+
+
+State 57
+
+   18 CType: CTypeSpecifier •  [TOK_IDENTIFIER]
+   19      | CTypeSpecifier • '*'
+
+    '*'  shift, and go to state 78
+
+    $default  reduce using rule 18 (CType)
+
+
+State 58
+
+   20 CTypeIdent: CType • TOK_IDENTIFIER
+   21           | CType • TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 79
+
+
+State 59
+
+   24 ParameterList: CTypeIdent •
+
+    $default  reduce using rule 24 (ParameterList)
+
+
+State 60
+
+   25 ParameterList: ParameterList • ',' CTypeIdent
+   44 MethodDeclarator: TOK_IDENTIFIER '(' ParameterList • ')'
+
+    ','  shift, and go to state 80
+    ')'  shift, and go to state 81
+
+
+State 61
+
+   23 CBlock: CBlock TOK_CCODE_LITERAL •
+
+    $default  reduce using rule 23 (CBlock)
+
+
+State 62
+
+   13 WebIDL: TOK_WEBIDL TOK_STRING_LITERAL • ';'
+
+    ';'  shift, and go to state 82
+
+
+State 63
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER '{' BindingArgs '}' • ';'
+
+    ';'  shift, and go to state 83
+
+
+State 64
+
+   10 BindingArgs: BindingArgs BindingArg •
+
+    $default  reduce using rule 10 (BindingArgs)
+
+
+State 65
+
+   12 BindingArg: BindingAndMethodType CBlock • ';'
+   23 CBlock: CBlock • TOK_CCODE_LITERAL
+
+    TOK_CCODE_LITERAL  shift, and go to state 61
+    ';'                shift, and go to state 84
+
+
+State 66
+
+   49 ClassArg: TOK_PRIVATE CTypeIdent • ';'
+
+    ';'  shift, and go to state 85
+
+
+State 67
+
+   50 ClassArg: TOK_INTERNAL CTypeIdent • ';'
+
+    ';'  shift, and go to state 86
+
+
+State 68
+
+   54 ClassFlags: TOK_IDENTIFIER •
+
+    $default  reduce using rule 54 (ClassFlags)
+
+
+State 69
+
+   52 ClassArg: TOK_FLAGS ClassFlags • ';'
+   55 ClassFlags: ClassFlags • ',' TOK_IDENTIFIER
+
+    ';'  shift, and go to state 87
+    ','  shift, and go to state 88
+
+
+State 70
+
+   51 ClassArg: TOK_PROPERTY Modifiers • TOK_IDENTIFIER ';'
+   57 Modifiers: Modifiers • Modifier
+   58 Modifier: • TOK_TYPE
+   59         | • TOK_UNSHARED
+   60         | • TOK_SHARED
+
+    TOK_TYPE        shift, and go to state 89
+    TOK_UNSHARED    shift, and go to state 90
+    TOK_SHARED      shift, and go to state 91
+    TOK_IDENTIFIER  shift, and go to state 92
+
+    Modifier  go to state 93
+
+
+State 71
+
+   23 CBlock: CBlock • TOK_CCODE_LITERAL
+   53 ClassArg: BindingAndMethodType CBlock • ';'
+
+    TOK_CCODE_LITERAL  shift, and go to state 61
+    ';'                shift, and go to state 94
+
+
+State 72
+
+   46 Class: TOK_CLASS TOK_IDENTIFIER '{' ClassArgs '}' • ';'
+
+    ';'  shift, and go to state 95
+
+
+State 73
+
+   48 ClassArgs: ClassArg ClassArgs •
+
+    $default  reduce using rule 48 (ClassArgs)
+
+
+State 74
+
+   14 CTypeSpecifier: • TOK_UNSIGNED TOK_IDENTIFIER
+   15               | • TOK_STRUCT TOK_IDENTIFIER
+   16               | • TOK_UNION TOK_IDENTIFIER
+   17               | • TOK_IDENTIFIER
+   18 CType: • CTypeSpecifier
+   19      | • CTypeSpecifier '*'
+   20 CTypeIdent: • CType TOK_IDENTIFIER
+   21           | • CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+   24 ParameterList: • CTypeIdent
+   25              | • ParameterList ',' CTypeIdent
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' • ParameterList ')'
+   43                 | TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' • ')'
+
+    TOK_STRUCT      shift, and go to state 52
+    TOK_UNION       shift, and go to state 53
+    TOK_UNSIGNED    shift, and go to state 54
+    TOK_IDENTIFIER  shift, and go to state 55
+    ')'             shift, and go to state 96
+
+    CTypeSpecifier  go to state 57
+    CType           go to state 58
+    CTypeIdent      go to state 59
+    ParameterList   go to state 97
+
+
+State 75
+
+   15 CTypeSpecifier: TOK_STRUCT TOK_IDENTIFIER •
+
+    $default  reduce using rule 15 (CTypeSpecifier)
+
+
+State 76
+
+   16 CTypeSpecifier: TOK_UNION TOK_IDENTIFIER •
+
+    $default  reduce using rule 16 (CTypeSpecifier)
+
+
+State 77
+
+   14 CTypeSpecifier: TOK_UNSIGNED TOK_IDENTIFIER •
+
+    $default  reduce using rule 14 (CTypeSpecifier)
+
+
+State 78
+
+   19 CType: CTypeSpecifier '*' •
+
+    $default  reduce using rule 19 (CType)
+
+
+State 79
+
+   20 CTypeIdent: CType TOK_IDENTIFIER •  [';', ',', ')']
+   21           | CType TOK_IDENTIFIER • TOK_DBLCOLON TOK_IDENTIFIER
+
+    TOK_DBLCOLON  shift, and go to state 98
+
+    $default  reduce using rule 20 (CTypeIdent)
+
+
+State 80
+
+   14 CTypeSpecifier: • TOK_UNSIGNED TOK_IDENTIFIER
+   15               | • TOK_STRUCT TOK_IDENTIFIER
+   16               | • TOK_UNION TOK_IDENTIFIER
+   17               | • TOK_IDENTIFIER
+   18 CType: • CTypeSpecifier
+   19      | • CTypeSpecifier '*'
+   20 CTypeIdent: • CType TOK_IDENTIFIER
+   21           | • CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER
+   25 ParameterList: ParameterList ',' • CTypeIdent
+
+    TOK_STRUCT      shift, and go to state 52
+    TOK_UNION       shift, and go to state 53
+    TOK_UNSIGNED    shift, and go to state 54
+    TOK_IDENTIFIER  shift, and go to state 55
+
+    CTypeSpecifier  go to state 57
+    CType           go to state 58
+    CTypeIdent      go to state 99
+
+
+State 81
+
+   44 MethodDeclarator: TOK_IDENTIFIER '(' ParameterList ')' •
+
+    $default  reduce using rule 44 (MethodDeclarator)
+
+
+State 82
+
+   13 WebIDL: TOK_WEBIDL TOK_STRING_LITERAL ';' •
+
+    $default  reduce using rule 13 (WebIDL)
+
+
+State 83
+
+    8 Binding: TOK_BINDING TOK_IDENTIFIER '{' BindingArgs '}' ';' •
+
+    $default  reduce using rule 8 (Binding)
+
+
+State 84
+
+   12 BindingArg: BindingAndMethodType CBlock ';' •
+
+    $default  reduce using rule 12 (BindingArg)
+
+
+State 85
+
+   49 ClassArg: TOK_PRIVATE CTypeIdent ';' •
+
+    $default  reduce using rule 49 (ClassArg)
+
+
+State 86
+
+   50 ClassArg: TOK_INTERNAL CTypeIdent ';' •
+
+    $default  reduce using rule 50 (ClassArg)
+
+
+State 87
+
+   52 ClassArg: TOK_FLAGS ClassFlags ';' •
+
+    $default  reduce using rule 52 (ClassArg)
+
+
+State 88
+
+   55 ClassFlags: ClassFlags ',' • TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 100
+
+
+State 89
+
+   58 Modifier: TOK_TYPE •
+
+    $default  reduce using rule 58 (Modifier)
+
+
+State 90
+
+   59 Modifier: TOK_UNSHARED •
+
+    $default  reduce using rule 59 (Modifier)
+
+
+State 91
+
+   60 Modifier: TOK_SHARED •
+
+    $default  reduce using rule 60 (Modifier)
+
+
+State 92
+
+   51 ClassArg: TOK_PROPERTY Modifiers TOK_IDENTIFIER • ';'
+
+    ';'  shift, and go to state 101
+
+
+State 93
+
+   57 Modifiers: Modifiers Modifier •
+
+    $default  reduce using rule 57 (Modifiers)
+
+
+State 94
+
+   53 ClassArg: BindingAndMethodType CBlock ';' •
+
+    $default  reduce using rule 53 (ClassArg)
+
+
+State 95
+
+   46 Class: TOK_CLASS TOK_IDENTIFIER '{' ClassArgs '}' ';' •
+
+    $default  reduce using rule 46 (Class)
+
+
+State 96
+
+   43 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ')' •
+
+    $default  reduce using rule 43 (MethodDeclarator)
+
+
+State 97
+
+   25 ParameterList: ParameterList • ',' CTypeIdent
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ParameterList • ')'
+
+    ','  shift, and go to state 80
+    ')'  shift, and go to state 102
+
+
+State 98
+
+   21 CTypeIdent: CType TOK_IDENTIFIER TOK_DBLCOLON • TOK_IDENTIFIER
+
+    TOK_IDENTIFIER  shift, and go to state 103
+
+
+State 99
+
+   25 ParameterList: ParameterList ',' CTypeIdent •
+
+    $default  reduce using rule 25 (ParameterList)
+
+
+State 100
+
+   55 ClassFlags: ClassFlags ',' TOK_IDENTIFIER •
+
+    $default  reduce using rule 55 (ClassFlags)
+
+
+State 101
+
+   51 ClassArg: TOK_PROPERTY Modifiers TOK_IDENTIFIER ';' •
+
+    $default  reduce using rule 51 (ClassArg)
+
+
+State 102
+
+   42 MethodDeclarator: TOK_IDENTIFIER TOK_DBLCOLON MethodName '(' ParameterList ')' •
+
+    $default  reduce using rule 42 (MethodDeclarator)
+
+
+State 103
+
+   21 CTypeIdent: CType TOK_IDENTIFIER TOK_DBLCOLON TOK_IDENTIFIER •
+
+    $default  reduce using rule 21 (CTypeIdent)

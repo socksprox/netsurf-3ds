@@ -1,0 +1,10 @@
+prefix=/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libnspsl
+Description: NetSurf Public Suffix List
+Version: 0.1.7
+Libs: -L${libdir} -lnspsl
+Cflags: -I${includedir}

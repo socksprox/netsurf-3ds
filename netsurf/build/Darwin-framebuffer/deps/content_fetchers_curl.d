@@ -1,0 +1,269 @@
+build/Darwin-framebuffer/deps/content_fetchers_curl.d build/Darwin-framebuffer/content_fetchers_curl.o: \
+ content/fetchers/curl.c utils/inet.h utils/config.h \
+ /opt/devkitpro/libctru/include/sys/socket.h \
+ /opt/devkitpro/libctru/include/netinet/in.h \
+ /opt/devkitpro/libctru/include/arpa/inet.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/curl.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/curlver.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/system.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/easy.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/multi.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/curl.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/urlapi.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/options.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/header.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/websockets.h \
+ /opt/devkitpro/portlibs/3ds/include/curl/typecheck-gcc.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/x509.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/config.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/check_config.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/asn1.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/bignum.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/pk.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/md.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/platform_util.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/platform_time.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/rsa.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/ecp.h \
+ /opt/devkitpro/portlibs/3ds/include/mbedtls/ecdsa.h \
+ /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h \
+ /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nsutils/time.h \
+ /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nsutils/errors.h \
+ /opt/devkitpro/libctru/include/3ds.h \
+ /opt/devkitpro/libctru/include/3ds/types.h \
+ /opt/devkitpro/libctru/include/3ds/result.h \
+ /opt/devkitpro/libctru/include/3ds/ipc.h \
+ /opt/devkitpro/libctru/include/3ds/svc.h \
+ /opt/devkitpro/libctru/include/3ds/exheader.h \
+ /opt/devkitpro/libctru/include/3ds/srv.h \
+ /opt/devkitpro/libctru/include/3ds/errf.h \
+ /opt/devkitpro/libctru/include/3ds/os.h \
+ /opt/devkitpro/libctru/include/3ds/synchronization.h \
+ /opt/devkitpro/libctru/include/3ds/thread.h \
+ /opt/devkitpro/libctru/include/3ds/gfx.h \
+ /opt/devkitpro/libctru/include/3ds/services/gspgpu.h \
+ /opt/devkitpro/libctru/include/3ds/console.h \
+ /opt/devkitpro/libctru/include/3ds/env.h \
+ /opt/devkitpro/libctru/include/3ds/util/decompress.h \
+ /opt/devkitpro/libctru/include/3ds/util/utf.h \
+ /opt/devkitpro/libctru/include/3ds/allocator/linear.h \
+ /opt/devkitpro/libctru/include/3ds/allocator/mappable.h \
+ /opt/devkitpro/libctru/include/3ds/allocator/vram.h \
+ /opt/devkitpro/libctru/include/3ds/services/ac.h \
+ /opt/devkitpro/libctru/include/3ds/services/act.h \
+ /opt/devkitpro/libctru/include/3ds/services/frd.h \
+ /opt/devkitpro/libctru/include/3ds/mii.h \
+ /opt/devkitpro/libctru/include/3ds/services/am.h \
+ /opt/devkitpro/libctru/include/3ds/services/fs.h \
+ /opt/devkitpro/libctru/include/3ds/services/ampxi.h \
+ /opt/devkitpro/libctru/include/3ds/services/apt.h \
+ /opt/devkitpro/libctru/include/3ds/services/boss.h \
+ /opt/devkitpro/libctru/include/3ds/services/cam.h \
+ /opt/devkitpro/libctru/include/3ds/services/y2r.h \
+ /opt/devkitpro/libctru/include/3ds/services/cfgnor.h \
+ /opt/devkitpro/libctru/include/3ds/services/cfgu.h \
+ /opt/devkitpro/libctru/include/3ds/services/csnd.h \
+ /opt/devkitpro/libctru/include/3ds/services/dsp.h \
+ /opt/devkitpro/libctru/include/3ds/services/fspxi.h \
+ /opt/devkitpro/libctru/include/3ds/services/fsreg.h \
+ /opt/devkitpro/libctru/include/3ds/services/gsplcd.h \
+ /opt/devkitpro/libctru/include/3ds/services/hid.h \
+ /opt/devkitpro/libctru/include/3ds/services/irrst.h \
+ /opt/devkitpro/libctru/include/3ds/services/sslc.h \
+ /opt/devkitpro/libctru/include/3ds/services/httpc.h \
+ /opt/devkitpro/libctru/include/3ds/services/uds.h \
+ /opt/devkitpro/libctru/include/3ds/services/ndm.h \
+ /opt/devkitpro/libctru/include/3ds/services/nim.h \
+ /opt/devkitpro/libctru/include/3ds/services/nwmext.h \
+ /opt/devkitpro/libctru/include/3ds/services/ir.h \
+ /opt/devkitpro/libctru/include/3ds/services/ns.h \
+ /opt/devkitpro/libctru/include/3ds/services/pmapp.h \
+ /opt/devkitpro/libctru/include/3ds/services/pmdbg.h \
+ /opt/devkitpro/libctru/include/3ds/services/ps.h \
+ /opt/devkitpro/libctru/include/3ds/services/ptmu.h \
+ /opt/devkitpro/libctru/include/3ds/services/ptmsysm.h \
+ /opt/devkitpro/libctru/include/3ds/services/ptmgets.h \
+ /opt/devkitpro/libctru/include/3ds/services/ptmsets.h \
+ /opt/devkitpro/libctru/include/3ds/services/pxidev.h \
+ /opt/devkitpro/libctru/include/3ds/services/pxipm.h \
+ /opt/devkitpro/libctru/include/3ds/services/soc.h \
+ /opt/devkitpro/libctru/include/3ds/services/mic.h \
+ /opt/devkitpro/libctru/include/3ds/services/mvd.h \
+ /opt/devkitpro/libctru/include/3ds/services/nfc.h \
+ /opt/devkitpro/libctru/include/3ds/services/news.h \
+ /opt/devkitpro/libctru/include/3ds/services/qtm.h \
+ /opt/devkitpro/libctru/include/3ds/services/qtmc.h \
+ /opt/devkitpro/libctru/include/3ds/services/srvpm.h \
+ /opt/devkitpro/libctru/include/3ds/services/loader.h \
+ /opt/devkitpro/libctru/include/3ds/services/mcuhwc.h \
+ /opt/devkitpro/libctru/include/3ds/services/cdcchk.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/gx.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/gpu.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/registers.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/enums.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/shbin.h \
+ /opt/devkitpro/libctru/include/3ds/gpu/shaderProgram.h \
+ /opt/devkitpro/libctru/include/3ds/ndsp/ndsp.h \
+ /opt/devkitpro/libctru/include/3ds/ndsp/channel.h \
+ /opt/devkitpro/libctru/include/3ds/applets/swkbd.h \
+ /opt/devkitpro/libctru/include/3ds/applets/error.h \
+ /opt/devkitpro/libctru/include/3ds/applets/miiselector.h \
+ /opt/devkitpro/libctru/include/3ds/archive.h \
+ /opt/devkitpro/libctru/include/3ds/romfs.h \
+ /opt/devkitpro/libctru/include/3ds/font.h \
+ /opt/devkitpro/libctru/include/3ds/gdbhio_dev.h \
+ /opt/devkitpro/libctru/include/3ds/3dslink.h utils/corestrings.h \
+ utils/errors.h utils/corestringlist.h utils/hashmap.h utils/nsoption.h \
+ desktop/options.h include/netsurf/types.h \
+ frontends/framebuffer/options.h utils/log.h \
+ /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nslog/nslog.h \
+ utils/messages.h include/netsurf/ssl_certs.h utils/utils.h utils/ring.h \
+ utils/useragent.h utils/file.h utils/string.h include/netsurf/fetch.h \
+ include/netsurf/misc.h desktop/gui_internal.h desktop/gui_table.h \
+ content/fetch.h utils/nsurl.h content/fetchers.h content/fetchers/curl.h \
+ content/urldb.h include/netsurf/url_db.h include/netsurf/content_type.h \
+ include/netsurf/cookie_db.h
+utils/inet.h:
+utils/config.h:
+/opt/devkitpro/libctru/include/sys/socket.h:
+/opt/devkitpro/libctru/include/netinet/in.h:
+/opt/devkitpro/libctru/include/arpa/inet.h:
+/opt/devkitpro/portlibs/3ds/include/curl/curl.h:
+/opt/devkitpro/portlibs/3ds/include/curl/curlver.h:
+/opt/devkitpro/portlibs/3ds/include/curl/system.h:
+/opt/devkitpro/portlibs/3ds/include/curl/easy.h:
+/opt/devkitpro/portlibs/3ds/include/curl/multi.h:
+/opt/devkitpro/portlibs/3ds/include/curl/curl.h:
+/opt/devkitpro/portlibs/3ds/include/curl/urlapi.h:
+/opt/devkitpro/portlibs/3ds/include/curl/options.h:
+/opt/devkitpro/portlibs/3ds/include/curl/header.h:
+/opt/devkitpro/portlibs/3ds/include/curl/websockets.h:
+/opt/devkitpro/portlibs/3ds/include/curl/typecheck-gcc.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/x509.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/config.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/check_config.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/asn1.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/bignum.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/pk.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/md.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/platform_util.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/platform_time.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/rsa.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/ecp.h:
+/opt/devkitpro/portlibs/3ds/include/mbedtls/ecdsa.h:
+/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h:
+/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nsutils/time.h:
+/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nsutils/errors.h:
+/opt/devkitpro/libctru/include/3ds.h:
+/opt/devkitpro/libctru/include/3ds/types.h:
+/opt/devkitpro/libctru/include/3ds/result.h:
+/opt/devkitpro/libctru/include/3ds/ipc.h:
+/opt/devkitpro/libctru/include/3ds/svc.h:
+/opt/devkitpro/libctru/include/3ds/exheader.h:
+/opt/devkitpro/libctru/include/3ds/srv.h:
+/opt/devkitpro/libctru/include/3ds/errf.h:
+/opt/devkitpro/libctru/include/3ds/os.h:
+/opt/devkitpro/libctru/include/3ds/synchronization.h:
+/opt/devkitpro/libctru/include/3ds/thread.h:
+/opt/devkitpro/libctru/include/3ds/gfx.h:
+/opt/devkitpro/libctru/include/3ds/services/gspgpu.h:
+/opt/devkitpro/libctru/include/3ds/console.h:
+/opt/devkitpro/libctru/include/3ds/env.h:
+/opt/devkitpro/libctru/include/3ds/util/decompress.h:
+/opt/devkitpro/libctru/include/3ds/util/utf.h:
+/opt/devkitpro/libctru/include/3ds/allocator/linear.h:
+/opt/devkitpro/libctru/include/3ds/allocator/mappable.h:
+/opt/devkitpro/libctru/include/3ds/allocator/vram.h:
+/opt/devkitpro/libctru/include/3ds/services/ac.h:
+/opt/devkitpro/libctru/include/3ds/services/act.h:
+/opt/devkitpro/libctru/include/3ds/services/frd.h:
+/opt/devkitpro/libctru/include/3ds/mii.h:
+/opt/devkitpro/libctru/include/3ds/services/am.h:
+/opt/devkitpro/libctru/include/3ds/services/fs.h:
+/opt/devkitpro/libctru/include/3ds/services/ampxi.h:
+/opt/devkitpro/libctru/include/3ds/services/apt.h:
+/opt/devkitpro/libctru/include/3ds/services/boss.h:
+/opt/devkitpro/libctru/include/3ds/services/cam.h:
+/opt/devkitpro/libctru/include/3ds/services/y2r.h:
+/opt/devkitpro/libctru/include/3ds/services/cfgnor.h:
+/opt/devkitpro/libctru/include/3ds/services/cfgu.h:
+/opt/devkitpro/libctru/include/3ds/services/csnd.h:
+/opt/devkitpro/libctru/include/3ds/services/dsp.h:
+/opt/devkitpro/libctru/include/3ds/services/fspxi.h:
+/opt/devkitpro/libctru/include/3ds/services/fsreg.h:
+/opt/devkitpro/libctru/include/3ds/services/gsplcd.h:
+/opt/devkitpro/libctru/include/3ds/services/hid.h:
+/opt/devkitpro/libctru/include/3ds/services/irrst.h:
+/opt/devkitpro/libctru/include/3ds/services/sslc.h:
+/opt/devkitpro/libctru/include/3ds/services/httpc.h:
+/opt/devkitpro/libctru/include/3ds/services/uds.h:
+/opt/devkitpro/libctru/include/3ds/services/ndm.h:
+/opt/devkitpro/libctru/include/3ds/services/nim.h:
+/opt/devkitpro/libctru/include/3ds/services/nwmext.h:
+/opt/devkitpro/libctru/include/3ds/services/ir.h:
+/opt/devkitpro/libctru/include/3ds/services/ns.h:
+/opt/devkitpro/libctru/include/3ds/services/pmapp.h:
+/opt/devkitpro/libctru/include/3ds/services/pmdbg.h:
+/opt/devkitpro/libctru/include/3ds/services/ps.h:
+/opt/devkitpro/libctru/include/3ds/services/ptmu.h:
+/opt/devkitpro/libctru/include/3ds/services/ptmsysm.h:
+/opt/devkitpro/libctru/include/3ds/services/ptmgets.h:
+/opt/devkitpro/libctru/include/3ds/services/ptmsets.h:
+/opt/devkitpro/libctru/include/3ds/services/pxidev.h:
+/opt/devkitpro/libctru/include/3ds/services/pxipm.h:
+/opt/devkitpro/libctru/include/3ds/services/soc.h:
+/opt/devkitpro/libctru/include/3ds/services/mic.h:
+/opt/devkitpro/libctru/include/3ds/services/mvd.h:
+/opt/devkitpro/libctru/include/3ds/services/nfc.h:
+/opt/devkitpro/libctru/include/3ds/services/news.h:
+/opt/devkitpro/libctru/include/3ds/services/qtm.h:
+/opt/devkitpro/libctru/include/3ds/services/qtmc.h:
+/opt/devkitpro/libctru/include/3ds/services/srvpm.h:
+/opt/devkitpro/libctru/include/3ds/services/loader.h:
+/opt/devkitpro/libctru/include/3ds/services/mcuhwc.h:
+/opt/devkitpro/libctru/include/3ds/services/cdcchk.h:
+/opt/devkitpro/libctru/include/3ds/gpu/gx.h:
+/opt/devkitpro/libctru/include/3ds/gpu/gpu.h:
+/opt/devkitpro/libctru/include/3ds/gpu/registers.h:
+/opt/devkitpro/libctru/include/3ds/gpu/enums.h:
+/opt/devkitpro/libctru/include/3ds/gpu/shbin.h:
+/opt/devkitpro/libctru/include/3ds/gpu/shaderProgram.h:
+/opt/devkitpro/libctru/include/3ds/ndsp/ndsp.h:
+/opt/devkitpro/libctru/include/3ds/ndsp/channel.h:
+/opt/devkitpro/libctru/include/3ds/applets/swkbd.h:
+/opt/devkitpro/libctru/include/3ds/applets/error.h:
+/opt/devkitpro/libctru/include/3ds/applets/miiselector.h:
+/opt/devkitpro/libctru/include/3ds/archive.h:
+/opt/devkitpro/libctru/include/3ds/romfs.h:
+/opt/devkitpro/libctru/include/3ds/font.h:
+/opt/devkitpro/libctru/include/3ds/gdbhio_dev.h:
+/opt/devkitpro/libctru/include/3ds/3dslink.h:
+utils/corestrings.h:
+utils/errors.h:
+utils/corestringlist.h:
+utils/hashmap.h:
+utils/nsoption.h:
+desktop/options.h:
+include/netsurf/types.h:
+frontends/framebuffer/options.h:
+utils/log.h:
+/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/nslog/nslog.h:
+utils/messages.h:
+include/netsurf/ssl_certs.h:
+utils/utils.h:
+utils/ring.h:
+utils/useragent.h:
+utils/file.h:
+utils/string.h:
+include/netsurf/fetch.h:
+include/netsurf/misc.h:
+desktop/gui_internal.h:
+desktop/gui_table.h:
+content/fetch.h:
+utils/nsurl.h:
+content/fetchers.h:
+content/fetchers/curl.h:
+content/urldb.h:
+include/netsurf/url_db.h:
+include/netsurf/content_type.h:
+include/netsurf/cookie_db.h:

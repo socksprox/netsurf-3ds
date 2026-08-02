@@ -1,0 +1,5 @@
+build-arm64-apple-darwin25.5.0-arm-none-eabi-release-lib-static/src_gif.o: \
+ src/gif.c src/lzw.h \
+ /Users/tamino/Code/N3DS/netsurf-3ds/libnsgif/include/nsgif.h
+src/lzw.h:
+/Users/tamino/Code/N3DS/netsurf-3ds/libnsgif/include/nsgif.h:

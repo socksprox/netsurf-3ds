@@ -52,23 +52,37 @@ NetSurf is a long way off from a Google Chrome replacement, and (given the proce
 
 # Building 
 
-Building only works in Linux at the moment.
+Requires [devkitPro](https://devkitpro.org/) with DevKitARM, libctru, and the 3DS portlibs listed below. macOS and Linux are supported.
 
-To build, ensure you have the DevKitARM toolchain installed with libctru, citro2d, citro3d, etc. You will also need the following libraries:
+Install the required portlibs (once):
 
-- 3ds-sdl
-- 3ds-mbedtls
-- 3ds-curl
-- 3ds-libpng
-- 3ds-libjpeg-turbo
-- 3ds-libiconv
-- 3ds-freetype (for future font support)
+```bash
+sudo dkp-pacman -Sy 3ds-sdl 3ds-mbedtls 3ds-curl 3ds-libpng 3ds-libjpeg-turbo 3ds-libiconv 3ds-freetype
+```
 
-You will also need `makerom` ([link](https://github.com/3DSGuy/Project_CTR/releases)) in your `PATH` in order to build with CIA support. Set the variable `NOCIA` to prevent CIAs from being built. `3dsxtool` (required for building the 3dsx version) should be included with the 3DS build environment.
+On macOS you also need GNU Bison (`brew install bison`).
 
-Ensure your environment has the `DEVKITARM` and `DEVKITPRO` variables set, and that DevKitARM's `bin` directory is in your `PATH` (you can probably do all of these things using a command like `source /etc/profile.d/devkit-env.sh`). 
+Build from the repository root:
 
-You should then be able to build NetSurf using the `make` command in the resository root. Use `make NOCIA=1` to prevent CIAs from being generated. Using multiple jobs (`-j <number of cpu cores>`) is reccomended to speed up compilation.
+```bash
+make
+```
+
+This produces `nsfb.3dsx` in the project root (and `netsurf/nsfb.3dsx`).
+
+Deploy over the network to a 3DS running the homebrew launcher (requires [3dslink](https://github.com/devkitPro/3dslink)):
+
+```bash
+make deploy
+```
+
+Set your 3DS IP address with `THREE_DS_IP` if needed (default: `192.168.86.230`):
+
+```bash
+make deploy THREE_DS_IP=192.168.1.42
+```
+
+To also build installable CIA files, install `makerom` from [Project_CTR](https://github.com/3DSGuy/Project_CTR/releases) and run `make build NOCIA=` (CIAs are skipped by default).
 
 ## Special thanks
 

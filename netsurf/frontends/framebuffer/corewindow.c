@@ -213,7 +213,11 @@ nserror fb_corewindow_init(fbtk_widget_t *parent, struct fb_corewindow *fb_cw)
 	fb_cw->drag_status = CORE_WINDOW_DRAG_NONE;
 
 	/* container window */
+#ifdef __3DS__
+	fb_cw->wnd = fbtk_create_window(parent, 0, FB_3DS_SCREEN_HEIGHT, 0, 0, 0);
+#else
 	fb_cw->wnd = fbtk_create_window(parent, 0, 0, 0, 0, 0);
+#endif
 
 	fb_cw->drawable = fbtk_create_user(fb_cw->wnd,
 					   0, 0,

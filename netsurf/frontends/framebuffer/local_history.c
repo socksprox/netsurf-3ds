@@ -188,6 +188,9 @@ nserror fb_local_history_present(fbtk_widget_t *parent,
 
 		 prnt_width = fbtk_get_width(parent);
 		 prnt_height = fbtk_get_height(parent);
+#ifdef __3DS__
+		 prnt_height -= FB_3DS_SCREEN_HEIGHT;
+#endif
 
 		/* resize history widget ensureing the drawing area is
 		 * no larger than parent window
@@ -201,6 +204,12 @@ nserror fb_local_history_present(fbtk_widget_t *parent,
 		if (height > prnt_height) {
 			height = prnt_height;
 		}
+
+#ifdef __3DS__
+		fbtk_set_pos_and_size(local_history_window->core.wnd,
+				      0, FB_3DS_SCREEN_HEIGHT,
+				      prnt_width, prnt_height);
+#endif
 		/* should update scroll area with contents */
 
 		fbtk_set_zorder(local_history_window->core.wnd, INT_MIN);

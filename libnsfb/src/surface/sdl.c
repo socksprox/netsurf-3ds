@@ -359,6 +359,12 @@ enum nsfb_key_code_e sdl_nsfb_map[] = {
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #define max(a,b) (((a) > (b)) ? (a) : (b))
 
+#ifdef __3DS__
+#define SDL_3DS_VIDEO_FLAGS (SDL_SWSURFACE | SDL_DUALSCR)
+#else
+#define SDL_3DS_VIDEO_FLAGS SDL_SWSURFACE
+#endif
+
 
 Uint32 last_update = 0;
 nsfb_bbox_t updaterect = {-1,-1,-1,-1};
@@ -477,7 +483,7 @@ static int sdl_set_geometry(nsfb_t *nsfb, int width, int height,
         sdl_screen = SDL_SetVideoMode(nsfb->width,
                                       nsfb->height,
                                       nsfb->bpp,
-                                      SDL_SWSURFACE | SDL_RESIZABLE);
+                                      SDL_3DS_VIDEO_FLAGS | SDL_RESIZABLE);
 
         if (sdl_screen == NULL ) {
             fprintf(stderr, "Unable to resize video: %s\n", SDL_GetError());
@@ -524,7 +530,7 @@ static int sdl_initialise(nsfb_t *nsfb)
     sdl_screen = SDL_SetVideoMode(nsfb->width,
                                   nsfb->height,
                                   nsfb->bpp,
-                                  SDL_SWSURFACE | SDL_BOTTOMSCR | SDL_CONSOLETOP);
+                                  SDL_3DS_VIDEO_FLAGS);
 
 
     if (sdl_screen == NULL ) {

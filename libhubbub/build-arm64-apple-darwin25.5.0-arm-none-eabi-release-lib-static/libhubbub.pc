@@ -1,0 +1,11 @@
+prefix=/Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libhubbub
+Description: HTML5 parsing library
+Version: 0.3.8
+Requires: libparserutils
+Libs: -L${libdir} -lhubbub
+Cflags: -I${includedir}

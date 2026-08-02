@@ -22,8 +22,13 @@ else
       BUILD_LIBPNG_CFLAGS += $(shell $(PKG_CONFIG) --cflags libpng)
       BUILD_LIBPNG_LDFLAGS += $(shell $(PKG_CONFIG) --libs libpng)
   else
+    ifeq ($(HOST),Darwin)
+      BUILD_LIBPNG_CFLAGS += -I/opt/homebrew/include/libpng16
+      BUILD_LIBPNG_LDFLAGS += -L/opt/homebrew/lib -lpng16
+    else
       BUILD_LIBPNG_CFLAGS +=
       BUILD_LIBPNG_LDFLAGS += -lpng
+    endif
   endif
 endif
 
@@ -32,33 +37,31 @@ endif
 #
 $(TOOLROOT)/xxd: tools/xxd.c $(TOOLROOT)/created
 	$(VQ)echo "BUILD CC: $@"
-	$(Q)cp ../tools/xxd $(TOOLROOT)/xxd
-# $(Q)$(BUILD_CC) $(BUILD_CFLAGS) -o $@ $<
-# $(BUILD_LDFLAGS)
+	$(Q)$(BUILD_CC) $(BUILD_CFLAGS) -o $@ $<
 
 
 # Build tool to filter messages
 #
 $(TOOLROOT)/split-messages: tools/split-messages.c $(TOOLROOT)/created
 	$(VQ)echo "BUILD CC: $@"
-	$(Q)cp ../tools/split-messages $(TOOLROOT)/split-messages
-#$(BUILD_CC) $(BUILD_CFLAGS) -I. -o $@ $<  -L$(DEVKITPRO)/libctru/lib -L$(DEVKITPRO)/portlibs/3ds/lib -lz
-# $(BUILD_LDFLAGS)
+ifeq ($(HOST),Darwin)
+	$(Q)$(BUILD_CC) $(BUILD_CFLAGS) -D__getline=getline -I. -o $@ $< -lz
+else
+	$(Q)$(BUILD_CC) $(BUILD_CFLAGS) -I. -o $@ $< -lz
+endif
 
 
 # Build tool to convert image bitmaps to source code.
 #
 $(TOOLROOT)/convert_image: tools/convert_image.c $(TOOLROOT)/created
 	$(VQ)echo "BUILD CC: $@"
-	$(Q)cp ../tools/convert_image $(TOOLROOT)/convert_image
-#$(BUILD_CC) $(BUILD_CFLAGS) $(BUILD_LIBPNG_CFLAGS) -o $@ $<  -L$(DEVKITPRO)/libctru/lib -L$(DEVKITPRO)/portlibs/3ds/lib $(BUILD_LIBPNG_LDFLAGS)
-# $(BUILD_LDFLAGS)
+	$(Q)$(BUILD_CC) $(BUILD_CFLAGS) $(BUILD_LIBPNG_CFLAGS) -o $@ $< $(BUILD_LIBPNG_LDFLAGS)
+
 
 # Build too to perform font conversion
 $(TOOLROOT)/convert_font: tools/convert_font.c $(TOOLROOT)/created
 	$(VQ)echo "BUILD CC: $@"
-	$(Q)cp ../tools/convert_font $(TOOLROOT)/convert_font
-#$(BUILD_CC) $(BUILD_CFLAGS) -o $@ $< -L$(DEVKITPRO)/libctru/lib -L$(DEVKITPRO)/portlibs/3ds/lib
+	$(Q)$(BUILD_CC) $(BUILD_CFLAGS) -o $@ $<
 
 # idna
 #
