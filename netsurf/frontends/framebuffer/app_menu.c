@@ -107,12 +107,12 @@ struct fb_menu_item {
 };
 
 static const struct fb_menu_item fb_menu_items[] = {
-	{ "Einstellungen", FB_MENU_ICON_GEAR, FB_MENU_ITEM_DISABLED },
-	{ "Mobile Webseite", FB_MENU_ICON_PHONE, FB_MENU_ITEM_TOGGLE },
-	{ "Lesezeichen", FB_MENU_ICON_STAR, FB_MENU_ITEM_DISABLED },
+	{ "Settings", FB_MENU_ICON_GEAR, FB_MENU_ITEM_DISABLED },
+	{ "Request mobile site", FB_MENU_ICON_PHONE, FB_MENU_ITEM_TOGGLE },
+	{ "Bookmarks", FB_MENU_ICON_STAR, FB_MENU_ITEM_DISABLED },
 	{ "Downloads", FB_MENU_ICON_DOWNLOAD, FB_MENU_ITEM_DISABLED },
-	{ "Verlauf", FB_MENU_ICON_HISTORY, FB_MENU_ITEM_DISABLED },
-	{ "Hilfe", FB_MENU_ICON_HELP, FB_MENU_ITEM_DISABLED },
+	{ "History", FB_MENU_ICON_HISTORY, FB_MENU_ITEM_DISABLED },
+	{ "Help", FB_MENU_ICON_HELP, FB_MENU_ITEM_DISABLED },
 };
 
 #define FB_MENU_ITEM_COUNT \
@@ -593,7 +593,7 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 				panel_x0 + shadow,
 				panel_y0 + shadow,
 				panel_x1 + shadow,
-				panel_y1 + shadow,
+				panel_y1,
 				FB_3DS_POPUP_RADIUS,
 				FB_MENU_COLOUR_SHADOW);
 	}
@@ -646,7 +646,9 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 		divider.y0 = row_y + FB_3DS_POPUP_ROW_HEIGHT - 1;
 		divider.x1 = panel_x1 - FB_3DS_POPUP_ICON_PAD;
 		divider.y1 = row_y + FB_3DS_POPUP_ROW_HEIGHT;
-		nsfb_plot_rectangle_fill(nsfb, &divider, FB_MENU_COLOUR_DIVIDER);
+		if (row < FB_MENU_ITEM_COUNT - 1) {
+			nsfb_plot_rectangle_fill(nsfb, &divider, FB_MENU_COLOUR_DIVIDER);
+		}
 	}
 
 	nsfb_update(nsfb, &bbox);
@@ -785,6 +787,26 @@ fb_menu_popup_pointer_move(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 static void
 fb_app_overlay_hide_internal(struct gui_window *gw)
 {
+	int restore_x = 0;
+	int restore_y = 0;
+	int restore_w = 0;
+	int restore_h = 0;
+	bool restore = false;
+	enum fb_app_overlay_state closing_state = app_overlay.state;
+
+	if (app_overlay.menu_popup != NULL && gw != NULL &&
+	    app_overlay.state == FB_APP_OVERLAY_MENU) {
+		restore_x = fbtk_get_absx(app_overlay.menu_popup) -
+				FB_3DS_POPUP_SHADOW;
+		restore_y = fbtk_get_absy(app_overlay.menu_popup) -
+				FB_3DS_POPUP_SHADOW;
+		restore_w = fbtk_get_width(app_overlay.menu_popup) +
+				FB_3DS_POPUP_SHADOW * 2;
+		restore_h = fbtk_get_height(app_overlay.menu_popup) +
+				FB_3DS_POPUP_SHADOW * 2;
+		restore = true;
+	}
+
 	if (app_overlay.menu_wnd != NULL) {
 		fbtk_set_mapping(app_overlay.menu_wnd, false);
 	}
@@ -798,10 +820,14 @@ fb_app_overlay_hide_internal(struct gui_window *gw)
 	app_overlay.state = FB_APP_OVERLAY_NONE;
 	app_overlay.scroll_dragging = false;
 
-	if (gw != NULL) {
+	if (restore) {
+		fb_gui_repaint_rect(gw, restore_x, restore_y,
+				restore_x + restore_w,
+				restore_y + restore_h);
+	} else if (closing_state == FB_APP_OVERLAY_SETTINGS && gw != NULL) {
 		fb_gui_repaint_browser(gw);
+		fb_gui_flush_display();
 	}
-	fb_gui_flush_display();
 }
 
 static int

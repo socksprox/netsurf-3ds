@@ -776,6 +776,30 @@ fb_gui_repaint_browser(struct gui_window *gw)
 }
 
 void
+fb_gui_repaint_rect(struct gui_window *gw, int sx0, int sy0, int sx1, int sy1)
+{
+	int bx, by, bw, bh;
+
+	if (gw == NULL || gw->browser == NULL) {
+		return;
+	}
+
+	fb_3ds_browser_geometry(gw, &bx, &by, &bw, &bh);
+
+	sx0 = max(sx0, bx);
+	sy0 = max(sy0, by);
+	sx1 = min(sx1, bx + bw);
+	sy1 = min(sy1, by + bh);
+
+	if (sx1 <= sx0 || sy1 <= sy0) {
+		return;
+	}
+
+	fb_queue_redraw(gw->browser, sx0 - bx, sy0 - by, sx1 - bx, sy1 - by);
+	fbtk_redraw(fbtk);
+}
+
+void
 fb_gui_flush_display(void)
 {
 	nsfb_t *nsfb;

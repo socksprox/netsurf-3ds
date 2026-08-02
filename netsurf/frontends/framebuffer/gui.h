@@ -77,6 +77,12 @@ extern struct gui_window *window_list;
 void fb_gui_repaint_browser(struct gui_window *gw);
 
 /**
+ * Repaint a screen-space rectangle of the browser viewport only.
+ */
+void fb_gui_repaint_rect(struct gui_window *gw,
+		int sx0, int sy0, int sx1, int sy1);
+
+/**
  * Push the entire framebuffer to both 3DS screens immediately.
  */
 void fb_gui_flush_display(void);
