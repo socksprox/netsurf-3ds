@@ -298,6 +298,13 @@ void fbtk_set_caret(fbtk_widget_t *widget, bool set, int x, int y, int height,
 int fbtk_set_mapping(fbtk_widget_t *widget, bool mapped);
 
 /**
+ * Unmap a widget without requesting a parent redraw.
+ *
+ * The caller is responsible for repainting any newly exposed area.
+ */
+int fbtk_unmap_without_redraw(fbtk_widget_t *widget);
+
+/**
  * Set the z order of a widget.
  */
 int fbtk_set_zorder(fbtk_widget_t *widget, int z);

@@ -126,6 +126,10 @@ fbtk_request_redraw(fbtk_widget_t *widget)
 int
 fbtk_set_mapping(fbtk_widget_t *widget, bool map)
 {
+	if (widget->mapped == map) {
+		return 0;
+	}
+
 	NSLOG(netsurf, INFO, "setting mapping on %p to %d", widget, map);
 	widget->mapped = map;
 	if (map) {
@@ -133,6 +137,18 @@ fbtk_set_mapping(fbtk_widget_t *widget, bool map)
 	} else {
 		fbtk_request_redraw(widget->parent);
 	}
+	return 0;
+}
+
+/* exported function documented in fbtk.h */
+int
+fbtk_unmap_without_redraw(fbtk_widget_t *widget)
+{
+	if (widget == NULL || !widget->mapped) {
+		return 0;
+	}
+
+	widget->mapped = false;
 	return 0;
 }
 

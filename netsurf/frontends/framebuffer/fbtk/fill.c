@@ -47,9 +47,8 @@ fb_redraw_fill(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	if ((widget->bg & 0xFF000000) != 0) {
 		/* transparent polygon filling isnt working so fake it */
 		nsfb_plot_rectangle_fill(nsfb, &bbox, widget->bg);
+		nsfb_update(nsfb, &bbox);
 	}
-
-	nsfb_update(nsfb, &bbox);
 
 	return 0;
 }

@@ -77,6 +77,8 @@ extern fbtk_widget_t *fbtk;
 #define FB_MENU_COLOUR_PANEL_BOTTOM 0xFFFFFFFF
 #define FB_MENU_COLOUR_SHADOW 0xFFAAAAAA
 #define FB_MENU_COLOUR_CHECKBOX_BORDER 0xFFCCCCCC
+#define FB_MENU_COLOUR_BORDER FB_COLOUR_BLACK
+#define FB_MENU_BORDER_WIDTH 1
 
 #define px_to_pt(x) (((x) * 72) / FBTK_DPI)
 
@@ -234,6 +236,53 @@ fb_menu_plot_pointer(nsfb_t *nsfb, int tip_x, int base_y, nsfb_colour_t colour)
 	};
 
 	nsfb_plot_polygon(nsfb, points, 3, colour);
+}
+
+static void
+fb_menu_plot_roundrect_border(nsfb_t *nsfb, int x0, int y0, int x1, int y1,
+		int radius, int bottom_left_x1, int bottom_right_x0)
+{
+	int width = FB_MENU_BORDER_WIDTH;
+	int inner_r = max(0, radius - width);
+	nsfb_bbox_t clear;
+
+	fb_menu_plot_roundrect_fill(nsfb, x0, y0, x1, y1, radius,
+			FB_MENU_COLOUR_BORDER);
+	fb_menu_plot_panel_background(nsfb, x0 + width, y0 + width,
+			x1 - width, y1 - width, inner_r);
+
+	if (bottom_right_x0 > bottom_left_x1) {
+		clear.x0 = bottom_left_x1;
+		clear.y0 = y1 - width;
+		clear.x1 = bottom_right_x0;
+		clear.y1 = y1;
+		nsfb_plot_rectangle_fill(nsfb, &clear, FB_MENU_COLOUR_PANEL_BOTTOM);
+	}
+}
+
+static void
+fb_menu_plot_pointer_border(nsfb_t *nsfb, int tip_x, int base_y,
+		nsfb_colour_t colour)
+{
+	nsfb_bbox_t line;
+	nsfb_plot_pen_t pen;
+
+	pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
+	pen.stroke_width = FB_MENU_BORDER_WIDTH;
+	pen.stroke_colour = colour;
+	pen.fill_type = NFSB_PLOT_OPTYPE_NONE;
+
+	line.x0 = tip_x - FB_3DS_POPUP_POINTER_W / 2;
+	line.y0 = base_y;
+	line.x1 = tip_x;
+	line.y1 = base_y + FB_3DS_POPUP_POINTER_H;
+	nsfb_plot_line(nsfb, &line, &pen);
+
+	line.x0 = tip_x + FB_3DS_POPUP_POINTER_W / 2;
+	line.y0 = base_y;
+	line.x1 = tip_x;
+	line.y1 = base_y + FB_3DS_POPUP_POINTER_H;
+	nsfb_plot_line(nsfb, &line, &pen);
 }
 
 static void
@@ -513,15 +562,36 @@ fb_app_menu_clamp_scroll(void)
 }
 
 static void
+fb_app_menu_repaint_exposed_page(struct gui_window *gw)
+{
+	int exposed_x0;
+	int exposed_y0;
+	int exposed_x1;
+	int exposed_y1;
+
+	if (gw == NULL || app_overlay.menu_popup == NULL) {
+		return;
+	}
+
+	exposed_x0 = fbtk_get_absx(gw->browser);
+	exposed_y0 = fbtk_get_absy(gw->browser);
+	exposed_x1 = exposed_x0 + fbtk_get_width(gw->browser);
+	exposed_y1 = fbtk_get_absy(app_overlay.menu_popup) - FB_3DS_POPUP_SHADOW;
+
+	if (exposed_y1 > exposed_y0) {
+		fb_gui_repaint_rect(gw, exposed_x0, exposed_y0,
+				exposed_x1, exposed_y1);
+	}
+}
+
+static void
 fb_app_menu_layout(struct gui_window *gw)
 {
 	fbtk_widget_t *parent = gw->window;
-	int win_w = fbtk_get_width(parent);
-	int win_h = fbtk_get_height(parent);
-	int furniture_width = nsoption_int(fb_furniture_size);
-	int bar_h = (gw->toolbar != NULL) ? fbtk_get_height(gw->toolbar) : 0;
+	int page_x = fbtk_get_absx(gw->browser);
 	int page_y = fbtk_get_absy(gw->browser);
-	int page_h = max(1, win_h - furniture_width - bar_h - page_y);
+	int page_w = fbtk_get_width(gw->browser);
+	int page_h = fbtk_get_height(gw->browser);
 	int menu_btn_cx;
 	int max_panel_h;
 	int panel_body_h;
@@ -536,14 +606,15 @@ fb_app_menu_layout(struct gui_window *gw)
 	if (gw->menu != NULL) {
 		menu_btn_cx = fbtk_get_absx(gw->menu) + fbtk_get_width(gw->menu) / 2;
 	} else {
-		menu_btn_cx = win_w - FB_3DS_POPUP_MARGIN -
+		menu_btn_cx = page_x + page_w - FB_3DS_POPUP_MARGIN -
 				FB_3DS_POPUP_POINTER_W / 2;
 	}
 
 	app_overlay.popup_x = menu_btn_cx - app_overlay.popup_w +
 			FB_3DS_POPUP_POINTER_W / 2;
-	app_overlay.popup_x = max(FB_3DS_POPUP_MARGIN, app_overlay.popup_x);
-	app_overlay.popup_x = min(win_w - app_overlay.popup_w -
+	app_overlay.popup_x = max(page_x + FB_3DS_POPUP_MARGIN,
+			app_overlay.popup_x);
+	app_overlay.popup_x = min(page_x + page_w - app_overlay.popup_w -
 			FB_3DS_POPUP_MARGIN, app_overlay.popup_x);
 
 	app_overlay.pointer_x = menu_btn_cx - app_overlay.popup_x;
@@ -555,10 +626,10 @@ fb_app_menu_layout(struct gui_window *gw)
 	app_overlay.popup_y = page_y + page_h - FB_3DS_POPUP_MARGIN -
 			app_overlay.popup_h;
 
-	fbtk_set_pos_and_size(app_overlay.menu_wnd, 0, page_y, win_w, page_h);
-	fbtk_set_pos_and_size(app_overlay.menu_backdrop, 0, 0, win_w, page_h);
+	fbtk_set_pos_and_size(app_overlay.menu_wnd, page_x, page_y, page_w, page_h);
+	fbtk_set_pos_and_size(app_overlay.menu_backdrop, 0, 0, page_w, page_h);
 	fbtk_set_pos_and_size(app_overlay.menu_popup,
-			app_overlay.popup_x,
+			app_overlay.popup_x - page_x,
 			app_overlay.popup_y - page_y,
 			app_overlay.popup_w,
 			app_overlay.popup_h);
@@ -577,6 +648,10 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	int panel_y1;
 	int shadow;
 	int row;
+	int pointer_x;
+	int pointer_base_y;
+	int pointer_left;
+	int pointer_right;
 
 	(void)cbi;
 
@@ -598,11 +673,13 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 				FB_MENU_COLOUR_SHADOW);
 	}
 
-	fb_menu_plot_panel_background(nsfb, panel_x0, panel_y0, panel_x1, panel_y1,
-			FB_3DS_POPUP_RADIUS);
-	fb_menu_plot_pointer(nsfb,
-			bbox.x0 + app_overlay.pointer_x,
-			bbox.y1 - FB_3DS_POPUP_POINTER_H,
+	pointer_x = bbox.x0 + app_overlay.pointer_x;
+	pointer_base_y = bbox.y1 - FB_3DS_POPUP_POINTER_H;
+	pointer_left = pointer_x - FB_3DS_POPUP_POINTER_W / 2;
+	pointer_right = pointer_x + FB_3DS_POPUP_POINTER_W / 2;
+	fb_menu_plot_roundrect_border(nsfb, panel_x0, panel_y0, panel_x1, panel_y1,
+			FB_3DS_POPUP_RADIUS, pointer_left, pointer_right);
+	fb_menu_plot_pointer(nsfb, pointer_x, pointer_base_y,
 			FB_MENU_COLOUR_PANEL_BOTTOM);
 
 	for (row = 0; row < FB_MENU_ITEM_COUNT; row++) {
@@ -650,6 +727,9 @@ fb_menu_popup_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 			nsfb_plot_rectangle_fill(nsfb, &divider, FB_MENU_COLOUR_DIVIDER);
 		}
 	}
+
+	fb_menu_plot_pointer_border(nsfb, pointer_x, pointer_base_y,
+			FB_MENU_COLOUR_BORDER);
 
 	nsfb_update(nsfb, &bbox);
 
@@ -808,13 +888,13 @@ fb_app_overlay_hide_internal(struct gui_window *gw)
 	}
 
 	if (app_overlay.menu_wnd != NULL) {
-		fbtk_set_mapping(app_overlay.menu_wnd, false);
+		fbtk_unmap_without_redraw(app_overlay.menu_wnd);
 	}
 	if (app_overlay.settings_top != NULL) {
-		fbtk_set_mapping(app_overlay.settings_top, false);
+		fbtk_unmap_without_redraw(app_overlay.settings_top);
 	}
 	if (app_overlay.settings_bottom != NULL) {
-		fbtk_set_mapping(app_overlay.settings_bottom, false);
+		fbtk_unmap_without_redraw(app_overlay.settings_bottom);
 	}
 
 	app_overlay.state = FB_APP_OVERLAY_NONE;
@@ -887,8 +967,9 @@ fb_app_settings_save(void)
 static void
 fb_app_overlay_refresh(void)
 {
-	if (app_overlay.gw != NULL && app_overlay.state == FB_APP_OVERLAY_MENU) {
-		fb_gui_repaint_browser(app_overlay.gw);
+	if (app_overlay.state == FB_APP_OVERLAY_MENU &&
+	    app_overlay.gw != NULL) {
+		fb_app_menu_repaint_exposed_page(app_overlay.gw);
 	}
 	if (app_overlay.menu_wnd != NULL && app_overlay.menu_popup != NULL) {
 		fbtk_set_zorder(app_overlay.menu_wnd, INT_MIN);
@@ -902,33 +983,33 @@ fb_app_overlay_refresh(void)
 		fbtk_set_zorder(app_overlay.settings_bottom, INT_MIN);
 		fbtk_request_redraw(app_overlay.settings_bottom);
 	}
-	fbtk_redraw(fbtk);
-	fb_gui_flush_display();
+	if (app_overlay.state == FB_APP_OVERLAY_SETTINGS) {
+		fbtk_redraw(fbtk);
+		fb_gui_flush_display();
+	}
 }
 
 static nserror
 fb_app_menu_init(struct gui_window *gw)
 {
 	fbtk_widget_t *parent = gw->window;
-	int win_w = fbtk_get_width(parent);
-	int win_h = fbtk_get_height(parent);
-	int furniture_width = nsoption_int(fb_furniture_size);
-	int bar_h = (gw->toolbar != NULL) ? fbtk_get_height(gw->toolbar) : 0;
+	int page_x = fbtk_get_absx(gw->browser);
 	int page_y = fbtk_get_absy(gw->browser);
-	int page_h = max(1, win_h - furniture_width - bar_h - page_y);
+	int page_w = max(1, fbtk_get_width(gw->browser));
+	int page_h = max(1, fbtk_get_height(gw->browser));
 
 	if (app_overlay.menu_wnd != NULL) {
 		return NSERROR_OK;
 	}
 
-	app_overlay.menu_wnd = fbtk_create_window(parent, 0, page_y, win_w, page_h,
-						  0);
+	app_overlay.menu_wnd = fbtk_create_window(parent, page_x, page_y,
+			page_w, page_h, 0);
 	if (app_overlay.menu_wnd == NULL) {
 		return NSERROR_NOMEM;
 	}
 
 	app_overlay.menu_backdrop = fbtk_create_fill(app_overlay.menu_wnd,
-			0, 0, win_w, page_h, 0);
+			0, 0, page_w, page_h, 0);
 	if (app_overlay.menu_backdrop == NULL) {
 		return NSERROR_NOMEM;
 	}

@@ -303,6 +303,22 @@ fb_3ds_request_bottom_chrome_redraw(struct gui_window *gw)
 	}
 }
 
+/** Whether a browser dirty region covers the full lower page viewport. */
+static bool
+fb_3ds_dirty_covers_lower_pane(struct gui_window *gw,
+		struct browser_widget_s *bwidget)
+{
+	int pane_w;
+	int pane_h;
+
+	fb_3ds_browser_geometry(gw, NULL, NULL, &pane_w, &pane_h);
+
+	return bwidget->redraw_box.x0 <= 0 &&
+			bwidget->redraw_box.y0 <= 0 &&
+			bwidget->redraw_box.x1 >= pane_w &&
+			bwidget->redraw_box.y1 >= pane_h;
+}
+
 /** Whether the top pane needs repainting for the current scroll state. */
 static bool
 fb_3ds_need_top_redraw(struct gui_window *gw,
@@ -311,7 +327,7 @@ fb_3ds_need_top_redraw(struct gui_window *gw,
 	int top_h;
 
 	if (bwidget->scrolly > 0) {
-		return true;
+		return fb_3ds_dirty_covers_lower_pane(gw, bwidget);
 	}
 
 	if (!bwidget->redraw_required) {
@@ -796,7 +812,6 @@ fb_gui_repaint_rect(struct gui_window *gw, int sx0, int sy0, int sx1, int sy1)
 	}
 
 	fb_queue_redraw(gw->browser, sx0 - bx, sy0 - by, sx1 - bx, sy1 - by);
-	fbtk_redraw(fbtk);
 }
 
 void
@@ -1169,17 +1184,31 @@ fb_redraw(fbtk_widget_t *widget,
 		nsfb_claim(nsfb, &pane_box);
 
 		if (widget == gw->browser_top) {
-			fb_3ds_fill_top_pane_bg(nsfb, x, y, pane_w, pane_h);
+			fb_3ds_fill_top_pane_bg(nsfb, box.x0, box.y0,
+					box.x1 - box.x0, box.y1 - box.y0);
 		} else if (widget == gw->browser) {
 			int win_w = fbtk_get_width(gw->window);
+			int fill_w = box.x1 - box.x0;
+			int fill_h = box.y1 - box.y0;
 
-			fb_3ds_fill_pane(nsfb, x, y, pane_w, pane_h);
+			fb_3ds_fill_pane(nsfb, box.x0, box.y0, fill_w, fill_h);
 			if (x > 0) {
-				fb_3ds_fill_top_pane_bg(nsfb, 0, y, x, pane_h);
+				int mx0 = max(0, box.x0);
+				int mx1 = min(x, box.x1);
+
+				if (mx1 > mx0) {
+					fb_3ds_fill_top_pane_bg(nsfb, mx0, box.y0,
+							mx1 - mx0, fill_h);
+				}
 			}
 			if (x + pane_w < win_w) {
-				fb_3ds_fill_top_pane_bg(nsfb, x + pane_w, y,
-						win_w - x - pane_w, pane_h);
+				int mx0 = max(x + pane_w, box.x0);
+				int mx1 = min(win_w, box.x1);
+
+				if (mx1 > mx0) {
+					fb_3ds_fill_top_pane_bg(nsfb, mx0, box.y0,
+							mx1 - mx0, fill_h);
+				}
 			}
 		}
 
@@ -1335,7 +1364,8 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 #endif
 		fb_redraw(widget, gw, bwidget, gw->bw);
 #ifdef __3DS__
-		if (widget == gw->browser) {
+		if (widget == gw->browser &&
+				fb_3ds_dirty_covers_lower_pane(gw, bwidget)) {
 			fb_3ds_repaint_toolbar_sync(gw);
 		}
 #endif
@@ -1378,7 +1408,8 @@ fb_browser_window_redraw(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 #endif
 		fb_redraw(widget, gw, bwidget, gw->bw);
 #ifdef __3DS__
-		if (widget == gw->browser) {
+		if (widget == gw->browser &&
+				fb_3ds_dirty_covers_lower_pane(gw, bwidget)) {
 			fb_3ds_repaint_toolbar_sync(gw);
 		}
 #endif
