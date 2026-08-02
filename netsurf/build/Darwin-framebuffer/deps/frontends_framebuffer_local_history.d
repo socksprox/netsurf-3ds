@@ -9,10 +9,12 @@ build/Darwin-framebuffer/deps/frontends_framebuffer_local_history.d build/Darwin
  frontends/framebuffer/options.h include/netsurf/keypress.h \
  include/netsurf/plotters.h include/netsurf/plot_style.h \
  /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h \
- desktop/local_history.h include/netsurf/mouse.h \
+ include/netsurf/browser_window.h include/netsurf/mouse.h \
+ include/netsurf/console.h desktop/local_history.h \
  frontends/framebuffer/gui.h frontends/framebuffer/fbtk.h \
- frontends/framebuffer/framebuffer.h frontends/framebuffer/corewindow.h \
- include/netsurf/core_window.h frontends/framebuffer/local_history.h
+ frontends/framebuffer/fbtk/widget.h frontends/framebuffer/framebuffer.h \
+ frontends/framebuffer/corewindow.h include/netsurf/core_window.h \
+ frontends/framebuffer/local_history.h frontends/framebuffer/schedule.h
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb_plot.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libnsfb_event.h:
@@ -27,11 +29,15 @@ include/netsurf/keypress.h:
 include/netsurf/plotters.h:
 include/netsurf/plot_style.h:
 /Users/tamino/Code/N3DS/netsurf-3ds/inst-framebuffer/include/libwapcaplet/libwapcaplet.h:
-desktop/local_history.h:
+include/netsurf/browser_window.h:
 include/netsurf/mouse.h:
+include/netsurf/console.h:
+desktop/local_history.h:
 frontends/framebuffer/gui.h:
 frontends/framebuffer/fbtk.h:
+frontends/framebuffer/fbtk/widget.h:
 frontends/framebuffer/framebuffer.h:
 frontends/framebuffer/corewindow.h:
 include/netsurf/core_window.h:
 frontends/framebuffer/local_history.h:
+frontends/framebuffer/schedule.h:

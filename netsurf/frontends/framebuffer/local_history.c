@@ -34,13 +34,18 @@
 #include "utils/nsoption.h"
 #include "netsurf/keypress.h"
 #include "netsurf/plotters.h"
+#include "netsurf/browser_window.h"
 #include "desktop/local_history.h"
 
 #include "framebuffer/gui.h"
 #include "framebuffer/fbtk.h"
+#include "fbtk/widget.h"
 #include "framebuffer/framebuffer.h"
 #include "framebuffer/corewindow.h"
 #include "framebuffer/local_history.h"
+#include "framebuffer/schedule.h"
+
+extern fbtk_widget_t *fbtk;
 
 struct fb_local_history_window {
 	struct fb_corewindow core;
@@ -50,6 +55,59 @@ struct fb_local_history_window {
 
 static struct fb_local_history_window *local_history_window = NULL;
 static fbtk_widget_t *local_history_parent = NULL;
+static struct gui_window *local_history_gw = NULL;
+
+
+static void
+fb_local_history_repaint_cb(void *pw)
+{
+	struct gui_window *gw = pw;
+
+	if (gw == NULL) {
+		return;
+	}
+
+	fb_gui_repaint_browser(gw);
+	fb_gui_flush_display();
+}
+
+
+bool
+fb_local_history_is_shown(void)
+{
+	return local_history_window != NULL &&
+	       local_history_window->core.wnd != NULL &&
+	       local_history_window->core.wnd->mapped;
+}
+
+
+static void
+fb_local_history_refresh(struct fb_local_history_window *lhw)
+{
+	fbtk_set_zorder(lhw->core.wnd, INT_MIN);
+	fbtk_request_redraw(lhw->core.wnd);
+	fbtk_request_redraw(lhw->core.drawable);
+	lhw->core.cb_table->invalidate(
+			(struct core_window *)lhw,
+			NULL);
+	fbtk_redraw(fbtk);
+	fb_gui_flush_display();
+}
+
+
+static nserror
+fb_local_history_hide_internal(struct gui_window *gw)
+{
+	if (!fb_local_history_is_shown()) {
+		return NSERROR_OK;
+	}
+
+	fbtk_set_mapping(local_history_window->core.wnd, false);
+	fb_gui_repaint_browser(gw);
+	fb_gui_flush_display();
+
+	return NSERROR_OK;
+}
 
 
 /**
@@ -61,13 +119,22 @@ fb_local_history_mouse(struct fb_corewindow *fb_cw,
 		    int x, int y)
 {
 	struct fb_local_history_window *lhw;
+	nserror err;
+	struct gui_window *gw;
 
 	lhw = (struct fb_local_history_window *)fb_cw;
+	gw = local_history_gw;
 
-	local_history_mouse_action(lhw->session, mouse_state, x, y);
+	err = local_history_mouse_action(lhw->session, mouse_state,
+			x + fb_cw->scrollx, y + fb_cw->scrolly);
 
-	if (mouse_state != BROWSER_MOUSE_HOVER) {
-		fbtk_set_mapping(lhw->core.wnd, false);
+	if (mouse_state != BROWSER_MOUSE_HOVER && gw != NULL) {
+		fb_local_history_hide_internal(gw);
+		if (err == NSERROR_OK) {
+			browser_window_schedule_reformat(gw->bw);
+			framebuffer_schedule(0, fb_local_history_repaint_cb, gw);
+			framebuffer_schedule(100, fb_local_history_repaint_cb, gw);
+		}
 	}
 
 	return NSERROR_OK;
@@ -104,22 +171,20 @@ fb_local_history_draw(struct fb_corewindow *fb_cw, struct rect *r)
 	};
 	struct fb_local_history_window *lhw;
 	struct rect clip;
-	int x;
-	int y;
 
 	(void)r;
 
 	lhw = (struct fb_local_history_window *)fb_cw;
-
-	x = fbtk_get_absx(lhw->core.drawable);
-	y = fbtk_get_absy(lhw->core.drawable);
 
 	clip.x0 = 0;
 	clip.y0 = 0;
 	clip.x1 = fbtk_get_width(lhw->core.drawable);
 	clip.y1 = fbtk_get_height(lhw->core.drawable);
 
-	return local_history_redraw(lhw->session, x, y, &clip, &ctx);
+	return local_history_redraw(lhw->session,
+				    fbtk_get_absx(lhw->core.drawable) - fb_cw->scrollx,
+				    fbtk_get_absy(lhw->core.drawable) - fb_cw->scrolly,
+				    &clip, &ctx);
 }
 
 
@@ -128,15 +193,13 @@ fb_local_history_draw(struct fb_corewindow *fb_cw, struct rect *r)
  */
 static nserror
 fb_local_history_init(fbtk_widget_t *parent,
-		      struct browser_window *bw,
 		      struct fb_local_history_window **win_out)
 {
 	struct fb_local_history_window *ncwin;
 	nserror res;
 
 	if ((*win_out) != NULL) {
-		res = local_history_set((*win_out)->session, bw);
-		return res;
+		return NSERROR_OK;
 	}
 
 	ncwin = calloc(1, sizeof(*ncwin));
@@ -148,15 +211,20 @@ fb_local_history_init(fbtk_widget_t *parent,
 	ncwin->core.key = fb_local_history_key;
 	ncwin->core.mouse = fb_local_history_mouse;
 
+#ifdef __3DS__
+	ncwin->core.no_scrollbars = true;
+#endif
+
 	res = fb_corewindow_init(parent, &ncwin->core);
 	if (res != NSERROR_OK) {
 		free(ncwin);
 		return res;
 	}
 
+	/* Bind browser data only when the overlay is shown. */
 	res = local_history_init(ncwin->core.cb_table,
 				 (struct core_window *)ncwin,
-				 bw,
+				 NULL,
 				 &ncwin->session);
 	if (res != NSERROR_OK) {
 		free(ncwin);
@@ -184,6 +252,10 @@ nserror fb_local_history_present(struct gui_window *gw,
 	int width;
 	int height;
 
+	if (fb_local_history_is_shown() && local_history_gw == gw) {
+		return fb_local_history_hide_internal(gw);
+	}
+
 	if (gw->toolbar != NULL) {
 		toolbar_height = fbtk_get_height(gw->toolbar);
 	}
@@ -193,12 +265,13 @@ nserror fb_local_history_present(struct gui_window *gw,
 		fb_local_history_destroy();
 	}
 
-	res = fb_local_history_init(parent, bw, &local_history_window);
+	res = fb_local_history_init(parent, &local_history_window);
 	if (res != NSERROR_OK) {
 		return res;
 	}
 
 	local_history_parent = parent;
+	local_history_gw = gw;
 
 	pos_x = 0;
 	width = fbtk_get_width(parent);
@@ -212,19 +285,28 @@ nserror fb_local_history_present(struct gui_window *gw,
 	height = fbtk_get_height(parent) - toolbar_height - furniture_width;
 #endif
 
-	if (width < furniture_width) {
-		width = furniture_width;
+	if (width < 1) {
+		width = 1;
 	}
-	if (height < furniture_width) {
-		height = furniture_width;
+	if (height < 1) {
+		height = 1;
 	}
+
+	local_history_window->core.scrollx = 0;
+	local_history_window->core.scrolly = 0;
 
 	fb_corewindow_resize(&local_history_window->core,
 			     pos_x, pos_y, width, height);
 
-	fbtk_set_zorder(local_history_window->core.wnd, INT_MIN);
+	res = local_history_set(local_history_window->session, bw);
+	if (res != NSERROR_OK) {
+		return res;
+	}
+
 	fbtk_set_mapping(local_history_window->core.wnd, true);
+
 	local_history_scroll_to_cursor(local_history_window->session);
+	fb_local_history_refresh(local_history_window);
 
 	return res;
 }
@@ -233,15 +315,7 @@ nserror fb_local_history_present(struct gui_window *gw,
 /* exported function documented in local_history.h */
 nserror fb_local_history_hide(void)
 {
-	nserror res = NSERROR_OK;
-
-	if (local_history_window != NULL) {
-		fbtk_set_mapping(local_history_window->core.wnd, false);
-
-		res = local_history_set(local_history_window->session, NULL);
-	}
-
-	return res;
+	return fb_local_history_hide_internal(local_history_gw);
 }
 
 
@@ -260,6 +334,7 @@ nserror fb_local_history_destroy(void)
 		free(local_history_window);
 		local_history_window = NULL;
 		local_history_parent = NULL;
+		local_history_gw = NULL;
 	}
 
 	return res;

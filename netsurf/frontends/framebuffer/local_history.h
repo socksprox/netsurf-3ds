@@ -47,4 +47,9 @@ nserror fb_local_history_hide(void);
  */
 nserror fb_local_history_destroy(void);
 
+/**
+ * Returns whether the local history overlay is currently visible.
+ */
+bool fb_local_history_is_shown(void);
+
 #endif

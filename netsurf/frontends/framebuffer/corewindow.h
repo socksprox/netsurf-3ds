@@ -43,6 +43,8 @@ struct fb_corewindow {
 	 */
 	struct fbtk_widget_s *drawable;
 
+	bool no_scrollbars; /**< use full window area, no scrollbar widgets */
+
 	int scrollx, scrolly; /**< scroll offsets. */
 
 

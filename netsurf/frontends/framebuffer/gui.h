@@ -61,6 +61,13 @@ struct gui_window {
 
 extern struct gui_window *window_list;
 
+void fb_gui_repaint_browser(struct gui_window *gw);
+
+/**
+ * Push the entire framebuffer to both 3DS screens immediately.
+ */
+void fb_gui_flush_display(void);
+
 void gui_resize(struct fbtk_widget_s *root, int width, int height);
 
 #endif /* NETSURF_FB_GUI_H */

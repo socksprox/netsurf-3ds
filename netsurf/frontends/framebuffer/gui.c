@@ -90,6 +90,10 @@ struct browser_widget_s {
 };
 
 #ifdef __3DS__
+static bool fb_history_dismiss_touch;
+#endif
+
+#ifdef __3DS__
 static void widget_set_scroll(struct gui_window *gw, int sx, int sy);
 
 static struct browser_widget_s *
@@ -240,6 +244,50 @@ fb_queue_redraw(struct fbtk_widget_s *widget, int x0, int y0, int x1, int y1)
 		bwidget->redraw_box.y1 = bwidget->redraw_box.x1 = -(INT_MAX);
 		bwidget->redraw_required = false;
 	}
+}
+
+void
+fb_gui_repaint_browser(struct gui_window *gw)
+{
+	if (gw == NULL || gw->browser == NULL) {
+		return;
+	}
+
+	fb_queue_redraw(gw->browser, 0, 0,
+			fbtk_get_width(gw->browser),
+			fbtk_get_height(gw->browser));
+#ifdef __3DS__
+	if (gw->browser_top != NULL) {
+		fb_queue_redraw(gw->browser_top, 0, 0,
+				fbtk_get_width(gw->browser_top),
+				fbtk_get_height(gw->browser_top));
+		fbtk_request_redraw(gw->browser_top);
+	}
+#endif
+	fbtk_request_redraw(gw->browser);
+	fbtk_redraw(fbtk);
+}
+
+void
+fb_gui_flush_display(void)
+{
+	nsfb_t *nsfb;
+	nsfb_bbox_t box;
+
+	if (fbtk == NULL) {
+		return;
+	}
+
+	nsfb = fbtk_get_nsfb(fbtk);
+	if (nsfb == NULL) {
+		return;
+	}
+
+	box.x0 = 0;
+	box.y0 = 0;
+	box.x1 = fbtk_get_width(fbtk);
+	box.y1 = fbtk_get_height(fbtk);
+	nsfb_update(nsfb, &box);
 }
 
 /* queue a window scroll */
@@ -899,6 +947,24 @@ fb_browser_window_click(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	    cbi->event->type != NSFB_EVENT_KEY_UP)
 		return 0;
 
+#ifdef __3DS__
+	if (fb_local_history_is_shown()) {
+		if (cbi->event->type == NSFB_EVENT_KEY_UP &&
+		    fb_history_dismiss_touch) {
+			fb_history_dismiss_touch = false;
+			return 1;
+		}
+		if (widget == gw->browser_top &&
+		    cbi->event->type == NSFB_EVENT_KEY_DOWN &&
+		    cbi->event->value.keycode == NSFB_KEY_MOUSE_1) {
+			fb_history_dismiss_touch = true;
+			fb_local_history_hide();
+			return 1;
+		}
+		return 0;
+	}
+#endif
+
 	NSLOG(netsurf, DEEPDEBUG, "browser window clicked at %d,%d",
 			cbi->x, cbi->y);
 
@@ -1073,6 +1139,12 @@ fb_browser_window_move(fbtk_widget_t *widget, fbtk_callback_info *cbi)
 	struct browser_widget_s *bwidget = fbtk_get_userpw(widget);
 	int x = cbi->x + bwidget->scrollx;
 	int y = fb_browser_pane_doc_y(widget, gw, cbi->y, bwidget->scrolly);
+
+#ifdef __3DS__
+	if (fb_local_history_is_shown()) {
+		return 0;
+	}
+#endif
 
 #ifdef __3DS__
 	if (gui_drag.state == GUI_DRAG_PRESSED && gui_drag.button == 1) {

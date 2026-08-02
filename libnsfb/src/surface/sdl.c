@@ -22,6 +22,7 @@
 #include "libnsfb_event.h"
 #include "libnsfb_plot.h"
 #include "libnsfb_plot_util.h"
+#include "libnsfb_cursor.h"
 
 #include "malloc.h"
 #include "nsfb.h"
@@ -376,13 +377,19 @@ void SDL_ShouldUpdate(SDL_Surface* sdl_screen,Sint32 x, Sint32 y, Uint32 w, Uint
         updaterect.x1 = x+w;
         updaterect.y0 = y;
         updaterect.y1 = y+h;
+    } else {
+        updaterect.x0 = min(updaterect.x0,x);
+        updaterect.y0 = min(updaterect.y0,y);
+        updaterect.x1 = max(updaterect.x1,(Sint32)(x+w));
+        updaterect.y1 = max(updaterect.y1,(Sint32)(y+h));
     }
 
-    updaterect.x0 = min(updaterect.x0,x);
-    updaterect.y0 = min(updaterect.y0,y);
-    updaterect.x1 = max(updaterect.x1,(Sint32)(x+w));
-    updaterect.y1 = max(updaterect.y1,(Sint32)(y+h));
-
+#ifdef __3DS__
+    /* Dual-screen SDL needs a full-surface push; partial rects are unreliable. */
+    SDL_UpdateRect(sdl_screen, 0, 0, 0, 0);
+    updaterect.x0 = -1;
+    last_update = SDL_GetTicks();
+#else
     if(SDL_GetTicks()-last_update < 16){
         SDL_Delay(max(16-(SDL_GetTicks()-last_update),0));
     }
@@ -396,6 +403,7 @@ void SDL_ShouldUpdate(SDL_Surface* sdl_screen,Sint32 x, Sint32 y, Uint32 w, Uint
         updaterect.x0 = -1;
         last_update = SDL_GetTicks();
     }
+#endif
 }
 
 
@@ -634,8 +642,6 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
     int got_event;
     SDL_Event sdlevent;
-
-    nsfb = nsfb; /* unused */
     
     if (timeout == 0) {
         SDL_Delay(0);
@@ -683,6 +689,15 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 	break;
 
     case SDL_MOUSEBUTTONDOWN:
+    {
+        nsfb_bbox_t loc;
+
+        loc.x0 = sdlevent.button.x;
+        loc.y0 = sdlevent.button.y;
+        loc.x1 = loc.x0 + 1;
+        loc.y1 = loc.y0 + 1;
+        nsfb_cursor_loc_set(nsfb, &loc);
+    }
 	event->type = NSFB_EVENT_KEY_DOWN;
 
 	switch (sdlevent.button.button) {
@@ -710,6 +725,15 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 	break;
 
     case SDL_MOUSEBUTTONUP:
+    {
+        nsfb_bbox_t loc;
+
+        loc.x0 = sdlevent.button.x;
+        loc.y0 = sdlevent.button.y;
+        loc.x1 = loc.x0 + 1;
+        loc.y1 = loc.y0 + 1;
+        nsfb_cursor_loc_set(nsfb, &loc);
+    }
 	event->type = NSFB_EVENT_KEY_UP;
 
 	switch (sdlevent.button.button) {
